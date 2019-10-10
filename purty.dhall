@@ -1,0 +1,1 @@
+{ output = < STDOUT | Write >.STDOUT, verbose = < NotVerbose | Verbose >.NotVerbose }
