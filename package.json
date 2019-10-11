@@ -1,4 +1,8 @@
 {
+  "scripts": {
+    "build": "yarn spago build",
+    "build-watch": "yarn spago build -w"
+  },
   "devDependencies": {
     "purescript": "^0.13.3",
     "purty": "^4.5.1",

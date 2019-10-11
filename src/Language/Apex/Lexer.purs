@@ -10,6 +10,7 @@ import Data.String.CodeUnits (fromCharArray)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Text.Parsing.Parser (Parser, fail)
+import Text.Parsing.Parser.Pos (Position)
 import Text.Parsing.Parser.Language as PL
 import Text.Parsing.Parser.Combinators as PC
 import Text.Parsing.Parser.Token as PT 
@@ -17,6 +18,8 @@ import Text.Parsing.Parser.Token (LanguageDef, GenLanguageDef(..), TokenParser)
 import Text.Parsing.Parser.String as PS
 
 type P = Parser String 
+
+data L a = L Position a
 
 data Token  = 
     -- Keywords
