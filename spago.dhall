@@ -12,6 +12,7 @@ You can edit this file as you like.
     , "node-fs-aff"
     , "parsing"
     , "psci-support"
+    , "unordered-collections"
     ]
 , packages =
     ./packages.dhall
