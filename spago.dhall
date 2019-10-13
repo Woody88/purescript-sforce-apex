@@ -6,6 +6,7 @@ You can edit this file as you like.
     "my-project"
 , dependencies =
     [ "arrays"
+    , "bigints"
     , "console"
     , "effect"
     , "generics-rep"

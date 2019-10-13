@@ -23,5 +23,5 @@ tokenize :: P (Array (L Token))
 tokenize =  javaLexer.whiteSpace *> Array.many nextToken <* PS.eof
 
 nextToken :: P (L Token)
-nextToken = PC.choice $ map (javaLexer.lexeme <<< PC.try) [doubleTok, stringTok, boolTok, intTok, opTok, identOrKeyword]
+nextToken = PC.choice $ map (javaLexer.lexeme <<< PC.try) [longTok, doubleTok, stringTok, boolTok, intTok, opTok, identOrKeyword]
 

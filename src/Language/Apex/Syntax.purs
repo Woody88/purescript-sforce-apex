@@ -5,18 +5,8 @@ import Data.List.Types
 import Data.Maybe (Maybe)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
-import Language.Apex.Syntax.Types
+import Language.Apex.Syntax.Types 
 
-data Literal 
-    = Int Int 
-    | Word Int 
-    | Float Number 
-    | Double Number 
-    | Boolean Boolean 
-    | Char Char 
-    | String String 
-    | Null 
-    
 -- | A binary infix operator.
 data Op = Mult  | Div   | Rem    | Add    | Sub   | LShift | RShift | RRShift
         | LThan | GThan | LThanE | GThanE | Equal | NotEq
@@ -51,24 +41,33 @@ data VarInit
 data ArrayInit
     = ArrayInit (Array VarInit)
 
+-- | A modifier specifying properties of a given declaration. In general only
+--   a few of these modifiers are allowed for each declaration type, for instance
+--   a member type declaration may only specify one of public, private or protected.
+data Modifier
+    = Public
+    | Private
+    | Protected
+    | Abstract
+    | Final
+    | Static
+    | Transient
+
 derive instance genericOp :: Generic Op _
-derive instance genericLiteral :: Generic Literal _
 derive instance genericExp :: Generic Exp _
 derive instance genericVarDecl :: Generic VarDecl _
 derive instance genericVarDeclId :: Generic VarDeclId _
 derive instance genericVarInit :: Generic VarInit _
 derive instance genericArrayInit :: Generic ArrayInit _
+derive instance genericModifier :: Generic Modifier _
 
-derive instance eqLiteral :: Eq Literal
 derive instance eqOp :: Eq Op
 derive instance eqExp :: Eq Exp
 derive instance eqVarDecl :: Eq VarDecl
 derive instance eqVarDeclId :: Eq VarDeclId 
 derive instance eqVarInit :: Eq VarInit
 derive instance eqArrayInit :: Eq ArrayInit
-
-instance showLiteral :: Show Literal where 
-    show = genericShow 
+derive instance eqModifier :: Eq Modifier
 
 instance showOp :: Show Op where 
     show = genericShow
@@ -91,3 +90,12 @@ instance showExp :: Show Exp where
     show exp = case exp of 
         Lit lit -> show lit 
         (BinOp x op y) -> show x <> " " <> show op <> " " <> show y
+
+instance showModifier :: Show Modifier where
+   show Public = "public" 
+   show Private = "private"
+   show Protected = "protected"
+   show Abstract = "abstract"
+   show Final = "final"
+   show Static = "static"
+   show Transient = "transient"

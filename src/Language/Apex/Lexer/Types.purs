@@ -1,6 +1,7 @@
 module Language.Apex.Lexer.Types where 
 
 import Prelude 
+import Data.BigInt
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Text.Parsing.Parser (Parser)
@@ -23,8 +24,8 @@ data Token  =
     -- -- Separators
     -- | OpenParen | CloseParen | OpenSquare | CloseSquare | OpenCurly | CloseCurly | SemiColon | Comma | Period | LambdaArrow | MethodRefSep
 
-    -- Literals
-    | IntTok Int | LongTok Int | DoubleTok Number | CharTok Char | StringTok String | BoolTok Boolean | NullTok
+    -- Literals 
+    | IntTok Int | LongTok BigInt | DoubleTok Number | CharTok Char | StringTok String | BoolTok Boolean | NullTok
 
     -- -- Identifiers
     | IdentTok String

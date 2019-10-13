@@ -10,6 +10,7 @@ import Data.Char.Unicode (isAlpha)
 import Data.Either (Either(..))
 import Data.HashSet as HS
 import Data.Int as Int
+import Data.BigInt as BigInt
 import Data.List (List, toUnfoldable)
 import Data.Maybe (Maybe, maybe)
 import Data.String.CodeUnits (fromCharArray)
@@ -44,7 +45,7 @@ javaReservedNames =
     , "continue" , "date" , "dfatetime" , "default" , "decimal" , "do" , "double" , "else" , "enum" , "extends" , "final" 
     , "finally" , "for" , "if" , "id" , "integer" , "implements" , "instanceof" , "interface" , "long" , "new" 
     , "object" , "private" , "protected" , "public" , "return" , "static" , "super" , "switch" , "string" , "time" , "this" 
-    , "throw" , "throws" , "transient" , "try" , "void" , "while", "when"
+    , "throw" , "throws" , "transient" , "try" , "void" , "while", "when", "null"
     ]
 
 javaReservedOpNames =
@@ -56,6 +57,7 @@ javaReservedOpNames =
 
 intTok    = IntTok    <<=: integerLiteral
 doubleTok = DoubleTok <<=: doubleLiteral
+longTok   = LongTok   <<=: longLiteral
 stringTok = StringTok <<=: stringLiteral
 boolTok   = BoolTok   <<=: boolLiteral
 opTok     = OpTok     <<=: opLiteral
@@ -110,6 +112,9 @@ reservedOp = javaLexer.reservedOp
 parens :: forall t. P t -> P t
 parens = javaLexer.parens      
 
+brackets :: forall t. P t -> P t
+brackets = javaLexer.brackets      
+
 -- parses a semicolon
 semi :: P String
 semi = javaLexer.semi    
@@ -135,6 +140,14 @@ doubleLiteral :: P Number
 doubleLiteral = javaLexer.float
 -- doubleLiteral = unsafeCoerce <$> PC.choice $ map PC.try 
 --     [ (digitsStr <> dot <> digitsStr) ]
+
+longLiteral :: P BigInt.BigInt 
+longLiteral = do 
+    i <- zero <|> digitsStr
+    _ <- integerTypeSuffix
+    maybe (fail "Could not read long integer") pure $ BigInt.fromString i 
+    where 
+        zero = PS.char '0' *> pure "0"
 
 stringLiteral :: P String
 stringLiteral = do 
