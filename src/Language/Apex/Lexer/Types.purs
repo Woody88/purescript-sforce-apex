@@ -1,15 +1,19 @@
 module Language.Apex.Lexer.Types where 
 
-import Prelude 
 import Data.BigInt
+import Prelude
+
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
+import Data.Newtype (class Newtype)
 import Text.Parsing.Parser (Parser)
-import Text.Parsing.Parser.Pos (Position)
+import Text.Parsing.Parser.Pos (Position(..))
 
 type P = Parser String 
 
-data L a = L Position a
+data L a = L Pos a
+
+newtype Pos = Pos Position 
 
 data Token  = 
     -- Keywords
@@ -22,7 +26,7 @@ data Token  =
     -- | KW_Switch | KW_Synchronized | KW_This | KW_Throw | KW_Throws | KW_Transient | KW_Try | KW_Void | KW_Volatile | KW_While
 
     -- -- Separators
-    -- | OpenParen | CloseParen | OpenSquare | CloseSquare | OpenCurly | CloseCurly | SemiColon | Comma | Period | LambdaArrow | MethodRefSep
+    | OpenParen | CloseParen | OpenSquare | CloseSquare | OpenCurly | CloseCurly | SemiColon | Comma | Period 
 
     -- Literals 
     | IntTok Int | LongTok BigInt | DoubleTok Number | CharTok Char | StringTok String | BoolTok Boolean | NullTok
@@ -34,16 +38,22 @@ data Token  =
     | OpTok String
     -- | Op_Equal | Op_GThan | Op_LThan | Op_Bang | Op_Tilde | Op_Query | Op_Colon | Op_Equals | Op_LThanE | Op_GThanE | Op_BangE | Op_AAnd 
     -- | Op_OOr | Op_PPlus | Op_MMinus | Op_Plus | Op_Minus | Op_Star | Op_Slash | Op_And | Op_Or | Op_Caret | Op_Percent | Op_LShift | Op_PlusE 
-    -- | Op_MinusE | Op_StarE | Op_SlashE | Op_AndE | Op_OrE | Op_CaretE | Op_PercentE | Op_LShiftE | Op_RShiftE | Op_RRShiftE | Op_AtSign
+    | Op_MinusE | Op_StarE | Op_SlashE | Op_AndE | Op_OrE | Op_CaretE | Op_PercentE | Op_LShiftE | Op_RShiftE | Op_RRShiftE | Op_AtSign
 
+derive instance newtypePos :: Newtype Pos _
 derive instance genericToken :: Generic Token _
 derive instance eqToken :: Eq Token 
+derive instance eqPos :: Eq Pos 
 
 derive instance genericL :: Generic (L a) _
 derive instance eqL :: Eq a => Eq (L a)
+
+instance showPos :: Show Pos where 
+    show (Pos (Position p)) = "(" <> show p.line <> "," <> show p.column <> ")"
 
 instance showL :: Show a => Show (L a) where 
     show = genericShow
 
 instance showToken :: Show Token where 
     show = genericShow
+

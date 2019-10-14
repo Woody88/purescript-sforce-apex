@@ -55,24 +55,22 @@ javaReservedOpNames =
     ]
 
 
-intTok    = IntTok    <<=: integerLiteral
-doubleTok = DoubleTok <<=: doubleLiteral
-longTok   = LongTok   <<=: longLiteral
-stringTok = StringTok <<=: stringLiteral
-boolTok   = BoolTok   <<=: boolLiteral
-opTok     = OpTok     <<=: opLiteral
--- lParen      =  LParen       <=* char '('
--- rParen      =  RParen       <=* char ')'
--- lSquare     =  LSquare      <=* char '['
--- rSquare     =  RSquare      <=* char ']'
--- lBrace      =  LBrace       <=* char '{'
--- rBrace      =  RBrace       <=* char '}'
--- semiColon   =  SemiColon    <=* char ';'
--- at          =  At           <=* char '@'
--- comm        =  Comma        <=* char ','
--- period      =  Period       <=* (char '.' <* notFollowedBy digit)
--- dColon      =  DColon       <=* string "::"
-
+intTok         = IntTok      <<=: integerLiteral
+doubleTok      = DoubleTok   <<=: doubleLiteral
+longTok        = LongTok     <<=: longLiteral
+stringTok      = StringTok   <<=: stringLiteral
+boolTok        = BoolTok     <<=: boolLiteral
+opTok          = OpTok       <<=: opLiteral
+lParenTok      = OpenParen   <=: PS.char '('
+rParenTok      = CloseParen  <=: PS.char ')'
+lSquareTok     = OpenSquare  <=: PS.char '['
+rSquareTok     = CloseSquare <=: PS.char ']'
+lBraceTok      = OpenCurly   <=: PS.char '{'
+rBraceTok      = CloseCurly  <=: PS.char '}'
+semiColonTok   = SemiColon   <=: PS.char ';'
+atTok          = Op_AtSign   <=: PS.char '@'
+commTok        = Comma       <=: PS.char ','
+periodTok      = Period      <=: (PS.char '.' <* PC.notFollowedBy PT.digit)
 
 keywordTable = HS.fromArray javaReservedNames
 operatorTable = HS.fromArray javaReservedOpNames
@@ -85,12 +83,8 @@ identOrKeyword = do
     s <- identifier
     pure $ 
         if isKeyword s 
-        then (L p $ KeywordTok s) 
-        else (L p $ IdentTok s)
-
--- parses an identifier
--- identifier :: P String  
--- identifier = javaLexer.identifier
+        then (L (Pos p) $ KeywordTok s) 
+        else (L (Pos p) $ IdentTok s)
 
 dot :: P String 
 dot = javaLexer.dot 

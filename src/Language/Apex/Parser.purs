@@ -5,6 +5,7 @@ import Prelude
 
 import Data.List (List)
 import Data.Maybe (Maybe(..), maybe)
+import Data.Newtype as Newtype
 import Language.Apex.Lexer.Types (L(..), Token(..))
 import Language.Apex.Syntax (Exp(..), VarInit(..))
 import Language.Apex.Syntax.Types (Ident(..), Literal(..))
@@ -60,7 +61,7 @@ primary = flip PC.withErrorMessage "primary expression" $ PC.choice $ map PC.try
 
 javaToken :: forall a. (Token -> Maybe a) -> P a
 javaToken f = PC.try $ do
-    (L _ t) <- PT.token (\(L pos _) -> pos)
+    (L _ t) <- PT.token (\(L pos _) -> Newtype.unwrap pos)
     maybe (fail "error parsing toking") pure $ f t
 
 tok :: Token -> P Unit

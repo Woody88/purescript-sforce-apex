@@ -10,6 +10,7 @@ You can edit this file as you like.
     , "console"
     , "effect"
     , "generics-rep"
+    , "newtype"
     , "node-buffer"
     , "node-fs-aff"
     , "parsing"
