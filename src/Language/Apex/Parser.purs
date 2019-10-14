@@ -37,7 +37,7 @@ literal = javaToken $ \t -> case t of
     DoubleTok  d -> Just (Double d)
     StringTok  s -> Just (String s)
     BoolTok    b -> Just (Boolean b)
-    KeywordTok s -> if s == "null" then Just Null else Nothing
+    --KeywordTok s -> if s == "null" then Just Null else Nothing
     _ -> Nothing
 
 ident :: P Ident
