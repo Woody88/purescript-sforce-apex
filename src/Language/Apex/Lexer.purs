@@ -1,23 +1,26 @@
 module Language.Apex.Lexer where 
 
-import Prelude (map, pure, ($), (*>), (<*), (<<<))
+import Prelude (map, pure, ($), (*>), (<*), (<<<), (<$>))
 import Data.Array as Array
+import Data.List as List
 import Data.Either (Either(..))
 import Effect (Effect)
 import Effect.Console (logShow)
-import Text.Parsing.Parser (runParser)
+import Text.Parsing.Parser (ParseError, runParser)
 import Text.Parsing.Parser.Combinators as PC
 import Text.Parsing.Parser.String as PS
 import Language.Apex.Lexer.Internal
 import Language.Apex.Lexer.Types (L, P, Token)
 
-lexJava :: String -> Effect (Array (L Token))
+lexJava :: String -> List.List (L Token)
 lexJava = runTokenizer
 
-runTokenizer :: String -> Effect (Array (L Token))
-runTokenizer s = case runParser s tokenize of
-                   Left pe ->  logShow pe *> pure []
-                   Right toks -> pure toks
+runTokenizer :: String -> List.List (L Token)
+runTokenizer s = List.fromFoldable $ case runParser s tokenize of
+                   Left pe    -> []
+                   Right toks -> toks
+runTokenizer' :: String -> Either ParseError (List.List (L Token))
+runTokenizer' s = List.fromFoldable <$> runParser s tokenize 
 
 tokenize :: P (Array (L Token))
 tokenize =  javaLexer.whiteSpace *> Array.many nextToken <* PS.eof

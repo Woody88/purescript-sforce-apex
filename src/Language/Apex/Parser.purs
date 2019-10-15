@@ -2,14 +2,16 @@ module Language.Apex.Parser where
 
 
 import Prelude
-
+import Control.Apply ((*>))
 import Data.List (List)
+import Data.Either 
 import Data.Maybe (Maybe(..), maybe)
 import Data.Newtype as Newtype
+import Language.Apex.Lexer 
 import Language.Apex.Lexer.Types (L(..), Token(..))
-import Language.Apex.Syntax (Exp(..), VarInit(..))
+import Language.Apex.Syntax 
 import Language.Apex.Syntax.Types (Ident(..), Literal(..))
-import Text.Parsing.Parser (Parser, fail)
+import Text.Parsing.Parser (Parser, ParseError, runParser, fail)
 import Text.Parsing.Parser.Combinators as PC
 import Text.Parsing.Parser.Token as PT
 
@@ -30,6 +32,14 @@ import Text.Parsing.Parser.Token as PT
 
 type P = Parser (List (L Token))
 
+------------- Top Level parsing -----------------
+-- parseCompilationUnit :: String -> Either ParseError VarDecl 
+-- parseCompilationUnit input =  do 
+--         tokens <- lexJava input
+        
+--         runParser input varDecl
+    
+
 literal :: P Literal
 literal = javaToken $ \t -> case t of
     IntTok     i -> Just (Int i)
@@ -47,17 +57,42 @@ ident = javaToken $ \t -> case t of
 
 ----------------------------------------------------------------------------
 -- Variable declarations
+varDecl :: P VarDecl 
+varDecl = do
+    vdi <- varDeclId
+    vi <- optMaybe $ tok Op_Equal *> varInit 
+    pure $ VarDecl vdi vi 
+
+varDeclId :: P VarDeclId 
+varDeclId = do 
+    id <- ident
+    pure $ VarDeclArray $ VarId id
+
 varInit :: P VarInit
 varInit = InitExp <$> expression 
 
 -- more to be added
 expression :: P Exp
-expression = primary 
+expression = infixExp 
 
 primary :: P Exp 
 primary = flip PC.withErrorMessage "primary expression" $ PC.choice $ map PC.try 
         [ (Lit <$> literal)
         ] 
+
+infixExp :: P Exp 
+infixExp = unaryExp 
+
+unaryExp :: P Exp 
+unaryExp = postfixExp 
+
+postfixExp :: P Exp 
+postfixExp = postfixExpNES
+
+postfixExpNES :: P Exp 
+postfixExpNES = primary 
+
+----------------- Utils --------------------
 
 javaToken :: forall a. (Token -> Maybe a) -> P a
 javaToken f = PC.try $ do
@@ -66,3 +101,6 @@ javaToken f = PC.try $ do
 
 tok :: Token -> P Unit
 tok t = javaToken (\r -> if r == t then Just unit else Nothing)
+
+optMaybe :: forall a. P a -> P (Maybe a)
+optMaybe = PC.optionMaybe 
