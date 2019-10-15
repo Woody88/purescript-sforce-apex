@@ -2,51 +2,37 @@ module Language.Apex.Parser where
 
 
 import Prelude
+import Control.Alt ((<|>))
 import Control.Apply ((*>))
-import Data.List (List)
+import Data.Tuple (Tuple(..))
+import Data.List (List, (:))
+import Data.List as List 
 import Data.Either 
 import Data.Maybe (Maybe(..), maybe)
 import Data.Newtype as Newtype
 import Language.Apex.Lexer 
 import Language.Apex.Lexer.Types (L(..), Token(..))
 import Language.Apex.Syntax 
-import Language.Apex.Syntax.Types (Ident(..), Literal(..))
+import Language.Apex.Syntax.Types 
 import Text.Parsing.Parser (Parser, ParseError, runParser, fail)
 import Text.Parsing.Parser.Combinators as PC
 import Text.Parsing.Parser.Token as PT
 
--- import Text.Parsing.Parser.String (char, eof)
--- import Text.Parsing.Parser.Combinators (sepBy1)
--- import Language.Syntax (Exp(..))
--- import Language.Lexer as Lx
-
--- program :: Parser String Exp
--- program = Lx.lexer.whiteSpace *> expression <* eof
---   where
---     sign = (char '-' *> pure negate) <|> (char '+' *> pure identity) <|> pure identity
---     number = Number <$> (sign <*> (either toNumber identity <$> Lx.lexer.naturalOrFloat))
---     string = String <$> Lx.lexer.stringLiteral  
---     list expr = List <$> Lx.lexer.brackets (sepBy1 expr Lx.lexer.comma)
---     assignment expr = Assignment <$> Lx.lexer.identifier <*> (Lx.lexer.symbol "=" *> expr)
---     expression = fix \expr -> string <|> number <|> list expr <|> assignment expr
-
 type P = Parser (List (L Token))
 
 ------------- Top Level parsing -----------------
--- parseCompilationUnit :: String -> Either ParseError VarDecl 
--- parseCompilationUnit input =  do 
---         tokens <- lexJava input
-        
---         runParser input varDecl
-    
 
+parseCompilationUnit :: String -> Either ParseError (Tuple Type (List VarDecl))
+parseCompilationUnit input =  runParser (lexJava input) localVarDecl
+    
 literal :: P Literal
 literal = javaToken $ \t -> case t of
-    IntTok     i -> Just (Int i)
+    IntegerTok i -> Just (Integer i)
     LongTok    l -> Just (Long l)
     DoubleTok  d -> Just (Double d)
     StringTok  s -> Just (String s)
     BoolTok    b -> Just (Boolean b)
+    NullTok      -> Just Null 
     --KeywordTok s -> if s == "null" then Just Null else Nothing
     _ -> Nothing
 
@@ -55,8 +41,33 @@ ident = javaToken $ \t -> case t of
     IdentTok s -> Just $ Ident s
     _ -> Nothing
 
-----------------------------------------------------------------------------
--- Variable declarations
+-- Modifiers
+
+-- modifier :: P Modifier
+-- modifier =
+--         tok KW_Public      >> return Public
+--     <|> tok KW_Protected   >> return Protected
+--     <|> tok KW_Private     >> return Private
+--     <|> tok KW_Abstract    >> return Abstract
+--     <|> tok KW_Static      >> return Static
+--     <|> tok KW_Strictfp    >> return StrictFP
+--     <|> tok KW_Final       >> return Final
+--     <|> tok KW_Native      >> return Native
+--     <|> tok KW_Transient   >> return Transient
+--     <|> tok KW_Volatile    >> return Volatile
+--     <|> tok KW_Synchronized >> return Synchronized_
+--     <|> Annotation <$> annotation
+
+------------ Variable declarations ----------------
+localVarDecl :: P (Tuple Type (List VarDecl))
+localVarDecl = do
+    typ <- type_
+    vds <- varDecls
+    pure $ Tuple typ vds
+
+varDecls :: P (List VarDecl)
+varDecls = seplist1 varDecl comma 
+
 varDecl :: P VarDecl 
 varDecl = do
     vdi <- varDeclId
@@ -90,9 +101,45 @@ postfixExp :: P Exp
 postfixExp = postfixExpNES
 
 postfixExpNES :: P Exp 
-postfixExpNES = primary 
+postfixExpNES = primary
+
+---------------- Types ---------------------
+
+type_ :: P Type
+type_ = PrimType <$> primType
+
+primType :: P PrimType
+primType =
+    tok KW_Boolean  *> pure BooleanT  <|>
+    tok KW_Object   *> pure ObjectT   <|>
+    tok KW_Decimal  *> pure DecimalT  <|>
+    tok KW_Integer  *> pure IntegerT  <|>
+    tok KW_Long     *> pure LongT     <|>
+    tok KW_Blob     *> pure BlobT     <|>
+    tok KW_Date     *> pure DateT     <|>
+    tok KW_Datetime *> pure DatetimeT <|>
+    tok KW_Time     *> pure TimeT     <|>
+    tok KW_Double   *> pure DoubleT
 
 ----------------- Utils --------------------
+
+seplist1 :: forall a sep. P a -> P sep -> P (List a)
+seplist1 p sep = do 
+    a <- p
+    PC.try (loopList a) <|> (pure $ List.singleton a)
+    where 
+        loopList a' = do 
+            _ <- sep
+            as <- seplist1 p sep
+            pure (a':as)
+
+list ::  forall a. P a -> P (List a)
+list = PC.option mempty <<< list1
+
+list1 :: forall a. P a -> P (List a)
+list1 = List.someRec
+
+comma = tok Comma
 
 javaToken :: forall a. (Token -> Maybe a) -> P a
 javaToken f = PC.try $ do

@@ -8,16 +8,44 @@ import Data.Generic.Rep.Show (genericShow)
 
 -- | A literal denotes a fixed, unchanging value.
 data Literal
-    = Int Int
+    = Integer Int
     | Double Number
     | Long BigInt
     | Boolean Boolean
     | String String
     | Null
 
-derive instance genericLiteral :: Generic Literal _
+-- | There are two kinds of types in the Java programming language: primitive types and reference types.
+data Type
+    = PrimType PrimType
 
+-- | A primitive type is predefined by the Java programming language and named by its reserved keyword.
+data PrimType
+    = BooleanT
+    | ObjectT
+    | DecimalT 
+    | IntegerT
+    | LongT
+    | BlobT
+    | DateT
+    | DatetimeT
+    | TimeT
+    | DoubleT
+
+
+derive instance genericLiteral :: Generic Literal _
+derive instance genericPrimType :: Generic PrimType _
+derive instance genericType :: Generic Type _
+
+derive instance eqType :: Eq Type
+derive instance eqPrimType :: Eq PrimType
 derive instance eqLiteral :: Eq Literal
+
+instance showType :: Show Type where 
+    show = genericShow 
+
+instance showPrimType :: Show PrimType where 
+    show = genericShow 
 
 instance showLiteral :: Show Literal where 
     show = genericShow 

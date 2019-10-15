@@ -71,7 +71,7 @@ derive instance eqModifier :: Eq Modifier
 
 instance showOp :: Show Op where 
     show = genericShow
-    
+
 instance showVarDecl :: Show VarDecl where 
     show = genericShow 
 
