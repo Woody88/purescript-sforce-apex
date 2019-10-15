@@ -25,6 +25,9 @@ data Token  =
     | KW_Switch | KW_This | KW_Throw | KW_Throws | KW_Transient | KW_Try | KW_Void | KW_While 
     | KW_Object | KW_Time | KW_ID | KW_Date | KW_Datetime
 
+    -- Sharing 
+    | KW_With_Share | KW_Without_Share | KW_Inherit_Share
+
     -- Annotations
     | KW_AnnAuraEnabled | KW_AnnDeprecated | KW_AnnFuture | KW_AnnInvocableMethod | KW_AnnInvocableVar | KW_AnnIsTest 
     | KW_AnnNamespaceAccess | KW_AnnReadOnly | KW_AnnRemoteAction | KW_AnnSuppressWarnings | KW_AnnTestSetup | KW_AnnTestVisible

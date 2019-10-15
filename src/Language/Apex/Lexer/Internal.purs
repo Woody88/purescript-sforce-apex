@@ -53,6 +53,9 @@ instance readTokenT :: ReadToken Token where
         PC.try (KW_AnnSuppressWarnings    <=: str "@SuppressWarnings" ) <|>
         PC.try (KW_AnnTestSetup           <=: str "@TestSetup" ) <|>
         PC.try (KW_AnnTestVisible         <=: str "@TestVisible" ) <|>
+        PC.try (KW_With_Share    <=: str "with sharing" ) <|>
+        PC.try (KW_Without_Share <=: str "without sharing") <|> 
+        PC.try (KW_Inherit_Share <=: str "inherit sharing") <|>
         PC.try (KW_Object     <=: str "object" ) <|>
         PC.try (KW_Time       <=: str "time") <|> 
         PC.try (KW_ID         <=: str "id") <|>
