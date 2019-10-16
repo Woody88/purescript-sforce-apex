@@ -28,10 +28,6 @@ data Token  =
     -- Sharing 
     | KW_With_Share | KW_Without_Share | KW_Inherit_Share
 
-    -- Annotations
-    | KW_AnnAuraEnabled | KW_AnnDeprecated | KW_AnnFuture | KW_AnnInvocableMethod | KW_AnnInvocableVar | KW_AnnIsTest 
-    | KW_AnnNamespaceAccess | KW_AnnReadOnly | KW_AnnRemoteAction | KW_AnnSuppressWarnings | KW_AnnTestSetup | KW_AnnTestVisible
-
     -- Separators
     | OpenParen | CloseParen | OpenSquare | CloseSquare | OpenCurly | CloseCurly | SemiColon | Comma | Period 
 

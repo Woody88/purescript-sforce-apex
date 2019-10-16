@@ -2,6 +2,7 @@ module Language.Apex.Syntax.Types where
 
 import Prelude
 
+import Data.List (List)
 import Data.BigInt (BigInt)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
@@ -56,7 +57,7 @@ instance showLiteral :: Show Literal where
 data Ident = Ident String
 
 -- | A name, i.e. a period-separated list of identifiers.
-data Name = Name (Array Ident)
+data Name = Name (List Ident)
 
 derive instance genericIdent :: Generic Ident _
 derive instance genericName:: Generic Name _

@@ -5,6 +5,7 @@ import Prelude
 import Control.Alt ((<|>))
 import Control.Apply ((*>))
 import Data.Tuple (Tuple(..))
+import Data.Tuple.Nested (Tuple3, tuple3)
 import Data.List (List, (:))
 import Data.List as List 
 import Data.Either 
@@ -22,8 +23,8 @@ type P = Parser (List (L Token))
 
 ------------- Top Level parsing -----------------
 
-parseCompilationUnit :: String -> Either ParseError (Tuple Type (List VarDecl))
-parseCompilationUnit input =  runParser (lexJava input) localVarDecl
+parseCompilationUnit :: String -> Either ParseError (Tuple3 (List Modifier) Type (List VarDecl))
+parseCompilationUnit input = runParser (lexJava input) localVarDecl
     
 literal :: P Literal
 literal = javaToken $ \t -> case t of
@@ -36,6 +37,9 @@ literal = javaToken $ \t -> case t of
     --KeywordTok s -> if s == "null" then Just Null else Nothing
     _ -> Nothing
 
+name :: P Name
+name = Name <$> seplist1 ident period
+
 ident :: P Ident
 ident = javaToken $ \t -> case t of
     IdentTok s -> Just $ Ident s
@@ -43,27 +47,39 @@ ident = javaToken $ \t -> case t of
 
 -- Modifiers
 
--- modifier :: P Modifier
--- modifier =
---         tok KW_Public      >> return Public
---     <|> tok KW_Protected   >> return Protected
---     <|> tok KW_Private     >> return Private
---     <|> tok KW_Abstract    >> return Abstract
---     <|> tok KW_Static      >> return Static
---     <|> tok KW_Strictfp    >> return StrictFP
---     <|> tok KW_Final       >> return Final
---     <|> tok KW_Native      >> return Native
---     <|> tok KW_Transient   >> return Transient
---     <|> tok KW_Volatile    >> return Volatile
---     <|> tok KW_Synchronized >> return Synchronized_
---     <|> Annotation <$> annotation
+modifier :: P Modifier
+modifier =
+        tok KW_Public      *> pure Public
+    <|> tok KW_Protected   *> pure Protected
+    <|> tok KW_Private     *> pure Private
+    <|> tok KW_Abstract    *> pure Abstract
+    <|> tok KW_Static      *> pure Static
+    <|> tok KW_Final       *> pure Final
+    <|> tok KW_Transient   *> pure Transient
+    <|> Annotation <$> annotation
+
+annotation :: P Annotation
+annotation = do 
+    annName <- tok Op_AtSign *> name
+    PC.try (parens evlist >>= \annKV -> pure $ NormalAnnotation { annName,  annKV }) <|> (pure $ MarkerAnnotation { annName })
+
+
+evlist :: P (List (Tuple Ident ElementValue))
+evlist = seplist1 elementValuePair comma
+
+elementValuePair :: P (Tuple Ident ElementValue)
+elementValuePair = Tuple <$> ident <* tok Op_Equal <*> elementValue
+
+elementValue :: P ElementValue
+elementValue = EVVal <$> InitExp <$> infixExp
 
 ------------ Variable declarations ----------------
-localVarDecl :: P (Tuple Type (List VarDecl))
+localVarDecl :: P (Tuple3 (List Modifier) Type (List VarDecl))
 localVarDecl = do
+    ms <- list modifier
     typ <- type_
     vds <- varDecls
-    pure $ Tuple typ vds
+    pure $ tuple3 ms typ vds
 
 varDecls :: P (List VarDecl)
 varDecls = seplist1 varDecl comma 
@@ -139,7 +155,18 @@ list = PC.option mempty <<< list1
 list1 :: forall a. P a -> P (List a)
 list1 = List.someRec
 
+endSemi :: forall a. P a -> P a
+endSemi p = p >>= \a -> semiColon *> pure a
+
+parens   = PC.between (tok OpenParen)  (tok CloseParen)
+braces   = PC.between (tok OpenCurly)  (tok CloseCurly)
+brackets = PC.between (tok OpenSquare) (tok CloseSquare)
+angles   = PC.between (tok Op_LThan)   (tok Op_GThan)
+
 comma = tok Comma
+colon     = tok Op_Colon
+semiColon = tok SemiColon
+period    = tok Period
 
 javaToken :: forall a. (Token -> Maybe a) -> P a
 javaToken f = PC.try $ do

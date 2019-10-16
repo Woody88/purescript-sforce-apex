@@ -1,6 +1,7 @@
 module Language.Apex.Syntax where 
 
 import Prelude 
+import Data.Tuple (Tuple(..))
 import Data.List.Types 
 import Data.Maybe (Maybe)
 import Data.Generic.Rep (class Generic)
@@ -52,6 +53,15 @@ data Modifier
     | Final
     | Static
     | Transient
+    | Annotation Annotation
+
+-- | Annotations may contain  annotations or (loosely) expressions
+data ElementValue = EVVal VarInit
+
+-- | Annotations have three different forms: no-parameter, single-parameter or key-value pairs
+data Annotation 
+    = NormalAnnotation  { annName :: Name,  annKV :: List (Tuple Ident ElementValue) }
+    | MarkerAnnotation  { annName :: Name }
 
 derive instance genericOp :: Generic Op _
 derive instance genericExp :: Generic Exp _
@@ -60,6 +70,8 @@ derive instance genericVarDeclId :: Generic VarDeclId _
 derive instance genericVarInit :: Generic VarInit _
 derive instance genericArrayInit :: Generic ArrayInit _
 derive instance genericModifier :: Generic Modifier _
+derive instance genericAnnotation :: Generic Annotation _
+derive instance genericElementValue :: Generic ElementValue _
 
 derive instance eqOp :: Eq Op
 derive instance eqExp :: Eq Exp
@@ -68,6 +80,8 @@ derive instance eqVarDeclId :: Eq VarDeclId
 derive instance eqVarInit :: Eq VarInit
 derive instance eqArrayInit :: Eq ArrayInit
 derive instance eqModifier :: Eq Modifier
+derive instance eqAnnotation :: Eq Annotation
+derive instance eqElementValue :: Eq ElementValue
 
 instance showOp :: Show Op where 
     show = genericShow
@@ -91,6 +105,12 @@ instance showExp :: Show Exp where
         Lit lit -> show lit 
         (BinOp x op y) -> show x <> " " <> show op <> " " <> show y
 
+instance showElementValue :: Show ElementValue where 
+    show = genericShow 
+
+instance showAnnotation :: Show Annotation where 
+    show = genericShow 
+
 instance showModifier :: Show Modifier where
    show Public = "public" 
    show Private = "private"
@@ -99,3 +119,4 @@ instance showModifier :: Show Modifier where
    show Final = "final"
    show Static = "static"
    show Transient = "transient"
+   show (Annotation a) = show a
