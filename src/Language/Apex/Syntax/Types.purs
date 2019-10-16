@@ -1,11 +1,12 @@
 module Language.Apex.Syntax.Types where 
 
 import Prelude
-
+import Data.Tuple (Tuple)
 import Data.List (List)
 import Data.BigInt (BigInt)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
+
 
 -- | A literal denotes a fixed, unchanging value.
 data Literal
@@ -19,6 +20,28 @@ data Literal
 -- | There are two kinds of types in the Java programming language: primitive types and reference types.
 data Type
     = PrimType PrimType
+    | RefType RefType
+
+-- | There are three kinds of reference types: class types, interface types, and array types.
+--   Reference types may be parameterized with type arguments.
+--   Type variables cannot be syntactically distinguished from class type identifiers,
+--   and are thus represented uniformly as single ident class types.
+data RefType
+    = ClassRefType ClassType
+    {- | TypeVariable Ident -}
+    | ArrayType Type
+
+-- | A class or interface type consists of a type declaration specifier,
+--   optionally followed by type arguments (in which case it is a parameterized type).
+data ClassType
+    = ClassType (List (Tuple Ident (List TypeArgument)))
+
+-- | Type arguments may be either reference types or wildcards.
+data TypeArgument = ActualType RefType
+
+-- | A class is generic if it declares one or more type variables. These type variables are known
+--   as the type parameters of the class.
+data TypeParam = TypeParam Ident (List RefType)
 
 -- | A primitive type is predefined by the Java programming language and named by its reserved keyword.
 data PrimType
@@ -37,10 +60,31 @@ data PrimType
 derive instance genericLiteral :: Generic Literal _
 derive instance genericPrimType :: Generic PrimType _
 derive instance genericType :: Generic Type _
+derive instance genericRefType :: Generic RefType _
+derive instance genericClassType :: Generic ClassType _
+derive instance genericTypeArgument :: Generic TypeArgument _
+derive instance genericTypeParam :: Generic TypeParam _
 
+derive instance eqRefType :: Eq RefType
+derive instance eqClassType :: Eq ClassType
+derive instance eqTypeArgument :: Eq TypeArgument
+derive instance eqTypeParam :: Eq TypeParam
 derive instance eqType :: Eq Type
 derive instance eqPrimType :: Eq PrimType
 derive instance eqLiteral :: Eq Literal
+
+instance showRefType :: Show RefType where 
+    show (ClassRefType c) = "ClassRefType " <> show c 
+    show x = genericShow x
+
+instance showClassType :: Show ClassType where 
+    show = genericShow 
+
+instance showTypeParam :: Show TypeParam where 
+    show = genericShow 
+
+instance showTypeArgument :: Show TypeArgument where 
+    show = genericShow 
 
 instance showType :: Show Type where 
     show = genericShow 

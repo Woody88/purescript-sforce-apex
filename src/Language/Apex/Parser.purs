@@ -2,14 +2,15 @@ module Language.Apex.Parser where
 
 
 import Prelude
+import Control.Lazy (fix)
 import Control.Alt ((<|>))
 import Control.Apply ((*>))
+import Data.Foldable (foldl)
 import Data.Tuple (Tuple(..))
-import Data.Tuple.Nested (Tuple3, tuple3)
 import Data.List (List, (:))
 import Data.List as List 
 import Data.Either 
-import Data.Maybe (Maybe(..), maybe)
+import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Newtype as Newtype
 import Language.Apex.Lexer 
 import Language.Apex.Lexer.Types (L(..), Token(..))
@@ -17,6 +18,7 @@ import Language.Apex.Syntax
 import Language.Apex.Syntax.Types 
 import Text.Parsing.Parser (Parser, ParseError, runParser, fail)
 import Text.Parsing.Parser.Combinators as PC
+import Text.Parsing.Parser.Combinators ((<?>))
 import Text.Parsing.Parser.Token as PT
 
 type P = Parser (List (L Token))
@@ -44,6 +46,29 @@ ident :: P Ident
 ident = javaToken $ \t -> case t of
     IdentTok s -> Just $ Ident s
     _ -> Nothing
+
+fieldDecl :: P (Mod MemberDecl)
+fieldDecl = endSemi $ do
+    typ <- type_
+    vds <- varDecls
+    pure $ \ms -> FieldDecl ms typ vds
+
+
+methodBody :: P MethodBody
+methodBody = MethodBody <$>
+    (const Nothing <$> semiColon <|> Just <$> block)
+
+-- Formal parameters
+
+formalParams :: P (List FormalParam)
+formalParams = parens $ seplist formalParam comma
+
+formalParam :: P FormalParam
+formalParam = do
+    ms  <- list modifier
+    typ <- type_
+    vid <- varDeclId
+    pure $ FormalParam ms typ vid
 
 -- Modifiers
 
@@ -74,12 +99,13 @@ elementValue :: P ElementValue
 elementValue = EVVal <$> InitExp <$> infixExp
 
 ------------ Variable declarations ----------------
+
 localVarDecl :: P (Tuple3 (List Modifier) Type (List VarDecl))
 localVarDecl = do
     ms <- list modifier
     typ <- type_
     vds <- varDecls
-    pure $ tuple3 ms typ vds
+    pure $ Tuple3 ms typ vds
 
 varDecls :: P (List VarDecl)
 varDecls = seplist1 varDecl comma 
@@ -119,10 +145,57 @@ postfixExp = postfixExpNES
 postfixExpNES :: P Exp 
 postfixExpNES = primary
 
+----------------------------------------------------------------------------
+-- Statements
+
+block :: P Block
+block = braces $ Block <$> list blockStmt
+
+blockStmt :: P BlockStmt
+blockStmt = do
+    (Tuple3 m t vds) <- endSemi $ localVarDecl 
+    pure $ LocalVars m t vds
+
+----------------- Type parameters and arguments -----------------
+
+-- typeParam :: P TypeParam
+-- typeParam = do
+--     i <- ident
+--     pure $ TypeParam i 
+
+typeArgs :: P (List TypeArgument)
+typeArgs = angles $ seplist1 typeArg comma
+
+typeArg :: P TypeArgument
+typeArg = ActualType <$> refType
+
 ---------------- Types ---------------------
+refType :: P RefType
+refType =
+    (do pt <- primType
+        l <- list1 arrBrackets
+        let bs = fromMaybe mempty $ List.tail l 
+        pure $ foldl (\f _ -> ArrayType <<< RefType <<< f)
+                        (ArrayType <<< PrimType) bs pt) <|>
+    (do ct <- classType
+        bs <- list arrBrackets
+        pure $ foldl (\f _ -> ArrayType <<< RefType <<< f)
+                            ClassRefType bs ct) <?> "refType"
+classType :: P ClassType
+classType = ClassType <$> seplist1 classTypeSpec period 
+
+classTypeSpec :: P (Tuple Ident (List TypeArgument))
+classTypeSpec = do
+    i   <- ident
+    tas <- lopt typeArgs
+    pure $ Tuple i tas
 
 type_ :: P Type
 type_ = PrimType <$> primType
+
+-- return type of a methodx
+resultType :: P (Maybe Type)
+resultType = tok KW_Void *> pure Nothing <|> Just <$> type_ <?> "resultType"
 
 primType :: P PrimType
 primType =
@@ -138,6 +211,8 @@ primType =
     tok KW_Double   *> pure DoubleT
 
 ----------------- Utils --------------------
+seplist :: forall a sep. P a -> P sep -> P (List a)
+seplist p sep = PC.option mempty $ seplist1 p sep
 
 seplist1 :: forall a sep. P a -> P sep -> P (List a)
 seplist1 p sep = do 
@@ -157,6 +232,9 @@ list1 = List.someRec
 
 endSemi :: forall a. P a -> P a
 endSemi p = p >>= \a -> semiColon *> pure a
+
+arrBrackets :: P Unit
+arrBrackets = brackets $ pure unit
 
 parens   = PC.between (tok OpenParen)  (tok CloseParen)
 braces   = PC.between (tok OpenCurly)  (tok CloseCurly)
@@ -178,3 +256,9 @@ tok t = javaToken (\r -> if r == t then Just unit else Nothing)
 
 optMaybe :: forall a. P a -> P (Maybe a)
 optMaybe = PC.optionMaybe 
+
+lopt :: forall a. P (List a) -> P (List a)
+lopt p = do mas <- optMaybe p
+            case mas of
+             Nothing -> pure mempty
+             Just as -> pure as
