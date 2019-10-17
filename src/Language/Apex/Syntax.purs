@@ -10,6 +10,9 @@ import Language.Apex.Syntax.Types
 
 type Mod a = List Modifier -> a 
 
+-- | Arguments to methods and constructors are expressions.
+type Argument = Exp
+
 data Tuple3 a b c = Tuple3 a b c 
 
 -- | A binary infix operator.
@@ -60,7 +63,7 @@ data MemberDecl
     -- | The variables of a class type are introduced by field declarations.
     = FieldDecl (List Modifier) Type (List VarDecl)
     -- -- | A method declares executable code that can be invoked, passing a fixed number of values as arguments.
-    -- | MethodDecl      [Modifier] [TypeParam] (Maybe Type) Ident [FormalParam] [ExceptionType] (Maybe Exp) MethodBody
+    | MethodDecl (List Modifier) (List TypeParam) (Maybe Type) Ident (List FormalParam) (Maybe Exp) MethodBody
     -- -- | A constructor is used in the creation of an object that is an instance of a class.
     -- | ConstructorDecl [Modifier] [TypeParam]              Ident [FormalParam] [ExceptionType] ConstructorBody
     -- -- | A member class is a class whose declaration is directly enclosed in another class or interface declaration.
@@ -116,6 +119,15 @@ data Annotation
     = NormalAnnotation  { annName :: Name,  annKV :: List (Tuple Ident ElementValue) }
     | MarkerAnnotation  { annName :: Name }
 
+-- | An explicit constructor invocation invokes another constructor of the
+--   same class, or a constructor of the direct superclass, which may
+--   be qualified to explicitly specify the newly created object's immediately
+--   enclosing instance.
+data ExplConstrInv
+    = ThisInvoke             (List RefType) Argument
+    | SuperInvoke            (List RefType) Argument
+    | PrimarySuperInvoke Exp (List RefType) Argument
+
 derive instance genericOp :: Generic Op _
 derive instance genericExp :: Generic Exp _
 derive instance genericVarDecl :: Generic VarDecl _
@@ -126,8 +138,11 @@ derive instance genericModifier :: Generic Modifier _
 derive instance genericAnnotation :: Generic Annotation _
 derive instance genericElementValue :: Generic ElementValue _
 derive instance genericMethodBody :: Generic MethodBody _
+derive instance genericMemberDecl :: Generic MemberDecl _
 derive instance genericFormalParam :: Generic FormalParam _
+derive instance genericExplConstrInv :: Generic ExplConstrInv _
 
+derive instance eqExplConstrInv :: Eq ExplConstrInv
 derive instance eqOp :: Eq Op
 derive instance eqExp :: Eq Exp
 derive instance eqVarDecl :: Eq VarDecl
@@ -138,9 +153,16 @@ derive instance eqModifier :: Eq Modifier
 derive instance eqAnnotation :: Eq Annotation
 derive instance eqElementValue :: Eq ElementValue
 derive instance eqMethodBody :: Eq MethodBody
+derive instance eqMemberDecl :: Eq MemberDecl
 derive instance eqFormalParam :: Eq FormalParam
 
+instance showExplConstrInv :: Show ExplConstrInv where 
+    show = genericShow
+
 instance showFormalParam :: Show FormalParam where 
+    show = genericShow
+
+instance showMemberDecl :: Show MemberDecl where 
     show = genericShow
 
 instance showMethodBody :: Show MethodBody where 

@@ -53,6 +53,14 @@ fieldDecl = endSemi $ do
     vds <- varDecls
     pure $ \ms -> FieldDecl ms typ vds
 
+methodDecl :: P (Mod MemberDecl)
+methodDecl = do
+    tps <- lopt typeParams
+    rt  <- resultType
+    id  <- ident
+    fps <- formalParams
+    bod <- methodBody
+    pure $ \ms -> MethodDecl ms tps rt id fps Nothing bod
 
 methodBody :: P MethodBody
 methodBody = MethodBody <$>
@@ -157,21 +165,36 @@ blockStmt = do
     pure $ LocalVars m t vds
 
 ----------------- Type parameters and arguments -----------------
+typeParams :: P (List TypeParam)
+typeParams = angles $ seplist1 typeParam comma
 
--- typeParam :: P TypeParam
--- typeParam = do
---     i <- ident
---     pure $ TypeParam i 
+typeParam :: P TypeParam
+typeParam = do
+    i  <- ident
+    rf <- PC.optionMaybe extends
+    pure $ TypeParam i rf
 
 typeArgs :: P (List TypeArgument)
-typeArgs = angles $ seplist1 typeArg comma
+typeArgs = fix \_ -> do
+    angles $ seplist1 typeArg comma
 
 typeArg :: P TypeArgument
-typeArg = ActualType <$> refType
+typeArg = fix \_ -> do 
+    r <- refType
+    pure $ ActualType r
 
 ---------------- Types ---------------------
+extends :: P RefType
+extends = tok KW_Extends *> refType
+
+refTypeArgs :: P (List RefType)
+refTypeArgs = angles refTypeList
+
+refTypeList :: P (List RefType)
+refTypeList = seplist1 refType comma
+
 refType :: P RefType
-refType =
+refType = fix \_ -> 
     (do pt <- primType
         l <- list1 arrBrackets
         let bs = fromMaybe mempty $ List.tail l 
@@ -182,7 +205,9 @@ refType =
         pure $ foldl (\f _ -> ArrayType <<< RefType <<< f)
                             ClassRefType bs ct) <?> "refType"
 classType :: P ClassType
-classType = ClassType <$> seplist1 classTypeSpec period 
+classType = fix \_ -> do 
+    c <- seplist1 classTypeSpec period 
+    pure $ ClassType c
 
 classTypeSpec :: P (Tuple Ident (List TypeArgument))
 classTypeSpec = do

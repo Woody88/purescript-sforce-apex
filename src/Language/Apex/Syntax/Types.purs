@@ -1,6 +1,7 @@
 module Language.Apex.Syntax.Types where 
 
 import Prelude
+import Data.Maybe (Maybe)
 import Data.Tuple (Tuple)
 import Data.List (List)
 import Data.BigInt (BigInt)
@@ -41,7 +42,7 @@ data TypeArgument = ActualType RefType
 
 -- | A class is generic if it declares one or more type variables. These type variables are known
 --   as the type parameters of the class.
-data TypeParam = TypeParam Ident (List RefType)
+data TypeParam = TypeParam Ident (Maybe RefType)
 
 -- | A primitive type is predefined by the Java programming language and named by its reserved keyword.
 data PrimType
