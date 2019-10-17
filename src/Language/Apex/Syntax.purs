@@ -56,20 +56,56 @@ instance showBlock :: Show Block where
     show = genericShow
 
 ----------------------- Declation Types -----------------------------------
+
+-- | A class declaration specifies a new named reference type.
+data ClassDecl
+    = ClassDecl (List Modifier) Ident (List TypeParam) (Maybe RefType) (List RefType) ClassBody
+    | EnumDecl  (List Modifier) Ident (List RefType) EnumBody
+
+-- | A class body may contain declarations of members of the class, that is,
+--   fields, classes, interfaces and methods.
+--   A class body may also contain instance initializers, static
+--   initializers, and declarations of constructors for the class.
+newtype ClassBody = ClassBody (List Decl)
+
+-- | The body of an enum type may contain enum constants.
+data EnumBody = EnumBody (List EnumConstant) (List Decl)
+
+-- | An enum constant defines an instance of the enum type.
+data EnumConstant = EnumConstant Ident (List Argument) (Maybe ClassBody)
+
+-- | An interface declaration introduces a new reference type whose members
+--   are classes, interfaces, constants and abstract methods. This type has
+--   no implementation, but otherwise unrelated classes can implement it by
+--   providing implementations for its abstract methods.
+data InterfaceDecl
+    = InterfaceDecl (List Modifier) Ident (List TypeParam) (List RefType) InterfaceBody
+
+-- | The body of an interface may declare members of the interface.
+newtype InterfaceBody
+    = InterfaceBody (List MemberDecl)
+
+-- | A declaration is either a member declaration, or a declaration of an
+--   initializer, which may be static.
+data Decl
+    = MemberDecl MemberDecl
+    | InitDecl Boolean Block
+
 -- | A class or interface member can be an inner class or interface, a field or
 --   constant, or a method or constructor. An interface may only have as members
 --   constants (not fields), abstract methods, and no constructors.
 data MemberDecl
     -- | The variables of a class type are introduced by field declarations.
     = FieldDecl (List Modifier) Type (List VarDecl)
-    -- -- | A method declares executable code that can be invoked, passing a fixed number of values as arguments.
+    -- | A method declares executable code that can be invoked, passing a fixed number of values as arguments.
     | MethodDecl (List Modifier) (List TypeParam) (Maybe Type) Ident (List FormalParam) (Maybe Exp) MethodBody
-    -- -- | A constructor is used in the creation of an object that is an instance of a class.
-    -- | ConstructorDecl [Modifier] [TypeParam]              Ident [FormalParam] [ExceptionType] ConstructorBody
-    -- -- | A member class is a class whose declaration is directly enclosed in another class or interface declaration.
-    -- | MemberClassDecl ClassDecl
+    -- | A constructor is used in the creation of an object that is an instance of a class.
+    | ConstructorDecl (List Modifier) (List TypeParam) Ident (List FormalParam) ConstructorBody
+    -- | A member class is a class whose declaration is directly enclosed in another class or interface declaration.
+    | MemberClassDecl ClassDecl
     -- -- | A member interface is an interface whose declaration is directly enclosed in another class or interface declaration.
     -- | MemberInterfaceDecl InterfaceDecl
+
 -- | A method body is either a block of code that implements the method or simply a
 --   semicolon, indicating the lack of an implementation (modelled by 'Nothing').
 newtype MethodBody = MethodBody (Maybe Block)
@@ -97,7 +133,6 @@ data ArrayInit
 --   indicated by the boolean argument.
 data FormalParam = FormalParam (List Modifier) Type VarDeclId
 
-
 -- | A modifier specifying properties of a given declaration. In general only
 --   a few of these modifiers are allowed for each declaration type, for instance
 --   a member type declaration may only specify one of public, private or protected.
@@ -119,14 +154,18 @@ data Annotation
     = NormalAnnotation  { annName :: Name,  annKV :: List (Tuple Ident ElementValue) }
     | MarkerAnnotation  { annName :: Name }
 
+-- | The first statement of a constructor body may be an explicit invocation of
+--   another constructor of the same class or of the direct superclass.
+data ConstructorBody = ConstructorBody (Maybe ExplConstrInv) (List BlockStmt)
+
 -- | An explicit constructor invocation invokes another constructor of the
 --   same class, or a constructor of the direct superclass, which may
 --   be qualified to explicitly specify the newly created object's immediately
 --   enclosing instance.
 data ExplConstrInv
-    = ThisInvoke             (List RefType) Argument
-    | SuperInvoke            (List RefType) Argument
-    | PrimarySuperInvoke Exp (List RefType) Argument
+    = ThisInvoke             (List RefType) (List Argument)
+    | SuperInvoke            (List RefType) (List Argument)
+    | PrimarySuperInvoke Exp (List RefType) (List Argument)
 
 derive instance genericOp :: Generic Op _
 derive instance genericExp :: Generic Exp _
@@ -141,8 +180,17 @@ derive instance genericMethodBody :: Generic MethodBody _
 derive instance genericMemberDecl :: Generic MemberDecl _
 derive instance genericFormalParam :: Generic FormalParam _
 derive instance genericExplConstrInv :: Generic ExplConstrInv _
+derive instance genericConstructorBody :: Generic ConstructorBody _
+derive instance genericDecl :: Generic Decl _
+derive instance genericClassDecl :: Generic ClassDecl _
+derive instance genericClassBody :: Generic ClassBody _
+derive instance genericEnumBody :: Generic EnumBody _
+derive instance genericEnumConstant :: Generic EnumConstant _
+derive instance genericInterfaceDecl :: Generic InterfaceDecl _
+derive instance genericInterfaceBody :: Generic InterfaceBody _
 
-derive instance eqExplConstrInv :: Eq ExplConstrInv
+
+
 derive instance eqOp :: Eq Op
 derive instance eqExp :: Eq Exp
 derive instance eqVarDecl :: Eq VarDecl
@@ -155,8 +203,42 @@ derive instance eqElementValue :: Eq ElementValue
 derive instance eqMethodBody :: Eq MethodBody
 derive instance eqMemberDecl :: Eq MemberDecl
 derive instance eqFormalParam :: Eq FormalParam
+derive instance eqExplConstrInv :: Eq ExplConstrInv
+derive instance eqConstructorBody :: Eq ConstructorBody 
+derive instance eqDecl :: Eq Decl 
+derive instance eqClassDecl :: Eq ClassDecl 
+derive instance eqClassBody :: Eq ClassBody 
+derive instance eqEnumBody :: Eq EnumBody 
+derive instance eqEnumConstant :: Eq EnumConstant 
+derive instance eqInterfaceDecl :: Eq InterfaceDecl 
+derive instance eqInterfaceBody :: Eq InterfaceBody 
 
-instance showExplConstrInv :: Show ExplConstrInv where 
+instance showInterfaceDecl :: Show InterfaceDecl where 
+    show = genericShow
+
+instance showInterfaceBody :: Show InterfaceBody where 
+    show = genericShow
+
+instance showClassBody :: Show ClassBody where 
+    show = genericShow
+
+instance showEnumBody :: Show EnumBody where 
+    show = genericShow
+
+instance showEnumConstant :: Show EnumConstant where 
+    show = genericShow
+
+instance showClassDecl :: Show ClassDecl where 
+    show = genericShow
+
+instance showDecl :: Show Decl where 
+    show (MemberDecl m) = "(MemberDecl " <> show m <> ")"
+    show (InitDecl bool bl) = "(InitDecl " <> show bool <> " " <> show bl <> ")"
+
+instance showConstructorBody :: Show ConstructorBody where 
+    show = genericShow
+
+instance showConstrInv :: Show ExplConstrInv where 
     show = genericShow
 
 instance showFormalParam :: Show FormalParam where 

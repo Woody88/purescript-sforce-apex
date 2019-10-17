@@ -10,7 +10,7 @@ import Data.Tuple (Tuple(..))
 import Data.List (List, (:))
 import Data.List as List 
 import Data.Either 
-import Data.Maybe (Maybe(..), fromMaybe, maybe)
+import Data.Maybe (Maybe(..), isJust, fromMaybe, maybe)
 import Data.Newtype as Newtype
 import Language.Apex.Lexer 
 import Language.Apex.Lexer.Types (L(..), Token(..))
@@ -77,6 +77,62 @@ formalParam = do
     typ <- type_
     vid <- varDeclId
     pure $ FormalParam ms typ vid
+
+-- Declations 
+enumBodyDecls :: P (List Decl)
+enumBodyDecls = semiColon *> classBodyStatements
+
+classBodyStatements :: P (List Decl)
+classBodyStatements = List.catMaybes <$> list classBodyStatement
+
+classBodyStatement :: P (Maybe Decl)
+classBodyStatement =
+    (PC.try $ do
+       _ <- list1 semiColon
+       pure Nothing) <|>
+    (PC.try $ do
+       mst <- bopt (tok KW_Static)
+       blk <- block
+       pure $ Just $ InitDecl mst blk) -- z<|>
+    -- (do ms  <- list modifier
+    --     dec <- memberDecl
+    --     pure $ Just $ MemberDecl (dec ms))
+
+constrDecl :: P (Mod MemberDecl)
+constrDecl = do
+    tps <- lopt typeParams
+    id  <- ident
+    fps <- formalParams
+    bod <- constrBody
+    pure $ \ms -> ConstructorDecl ms tps id fps bod
+
+constrBody :: P ConstructorBody
+constrBody = braces $ do
+    mec <- optMaybe (PC.try explConstrInv)
+    bss <- list blockStmt
+    pure $ ConstructorBody mec bss
+
+explConstrInv :: P ExplConstrInv
+explConstrInv = endSemi $
+    (PC.try $ do
+        tas <- lopt refTypeArgs
+        tok KW_This
+        as  <- args
+        pure $ ThisInvoke tas as) <|>
+    (PC.try $ do
+        tas <- lopt refTypeArgs
+        tok KW_Super
+        as  <- args
+        pure $ SuperInvoke tas as) <|>
+    (do pri <- primary
+        period
+        tas <- lopt refTypeArgs
+        tok KW_Super
+        as  <- args
+        pure $ PrimarySuperInvoke pri tas as)
+
+args :: P (List Argument)
+args = parens $ seplist expression comma
 
 -- Modifiers
 
@@ -281,6 +337,9 @@ tok t = javaToken (\r -> if r == t then Just unit else Nothing)
 
 optMaybe :: forall a. P a -> P (Maybe a)
 optMaybe = PC.optionMaybe 
+
+bopt :: forall a. P a -> P Boolean
+bopt p = optMaybe p >>= \ma -> pure $ isJust ma 
 
 lopt :: forall a. P (List a) -> P (List a)
 lopt p = do mas <- optMaybe p
