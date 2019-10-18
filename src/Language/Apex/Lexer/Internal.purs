@@ -41,6 +41,7 @@ instance readTokenT :: ReadToken Token where
         PC.try (StringTok              <<=: stringLiteral)  <|>
         PC.try (BoolTok                <<=: boolLiteral)    <|>
         PC.try (Period                 <=: period     )     <|>
+        PC.try (KW_Override            <=: str "override" ) <|>
         PC.try (KW_With_Share          <=: str "with sharing" ) <|>
         PC.try (KW_Without_Share       <=: str "without sharing") <|> 
         PC.try (KW_Inherit_Share       <=: str "inherit sharing") <|>

@@ -5,6 +5,7 @@ import Prelude
 import Control.Lazy (fix)
 import Control.Alt ((<|>))
 import Control.Apply ((*>))
+import Control.Monad.State (gets, modify_)
 import Data.Foldable (foldl)
 import Data.Tuple (Tuple(..))
 import Data.List (List, (:))
@@ -12,22 +13,30 @@ import Data.List as List
 import Data.Either 
 import Data.Maybe (Maybe(..), isJust, fromMaybe, maybe)
 import Data.Newtype as Newtype
+import Text.Parsing.Parser.Pos 
 import Language.Apex.Lexer 
 import Language.Apex.Lexer.Types (L(..), Token(..))
 import Language.Apex.Syntax 
 import Language.Apex.Syntax.Types 
-import Text.Parsing.Parser (Parser, ParseError, runParser, fail)
+import Text.Parsing.Parser (Parser, ParseError, position, runParser, fail)
 import Text.Parsing.Parser.Combinators as PC
 import Text.Parsing.Parser.Combinators ((<?>))
+import Text.Parsing.Parser.String as PS
 import Text.Parsing.Parser.Token as PT
 
 type P = Parser (List (L Token))
 
 ------------- Top Level parsing -----------------
 
-parseCompilationUnit :: String -> Either ParseError (Tuple3 (List Modifier) Type (List VarDecl))
-parseCompilationUnit input = runParser (lexJava input) localVarDecl
-    
+parseCompilationUnit :: String -> Either ParseError CompilationUnit
+parseCompilationUnit input = runParser (lexJava input) compilationUnit
+
+------------- Compilation Unit -----------------
+compilationUnit :: P CompilationUnit
+compilationUnit = do 
+    tds <- list typeDecl
+    pure $ CompilationUnit (List.catMaybes tds)
+
 literal :: P Literal
 literal = javaToken $ \t -> case t of
     IntegerTok i -> Just (Integer i)
@@ -78,12 +87,64 @@ formalParam = do
     vid <- varDeclId
     pure $ FormalParam ms typ vid
 
+
 -- Declations 
+typeDecl :: P (Maybe TypeDecl)
+typeDecl = Just <$> classOrInterfaceDecl <|> const Nothing <$> semiColon
+
+classOrInterfaceDecl :: P TypeDecl
+classOrInterfaceDecl = do
+    ms <- list modifier
+    de <- (do cd <- classDecl
+              pure $ \ms -> ClassTypeDecl (cd ms)) <|>
+          (do id <- interfaceDecl
+              pure $ \ms -> InterfaceTypeDecl (id ms))
+    pure $ de ms
+
+classDecl :: P (Mod ClassDecl)
+classDecl = fix $ \_ -> normalClassDecl <|> enumClassDecl
+
+normalClassDecl :: P (Mod ClassDecl)
+normalClassDecl = do 
+    tok KW_Class 
+    i    <- ident 
+    -- tps  <- lopt typeParams
+    -- ext  <- optMaybe extends 
+    -- imp  <- lopt implements
+    body <- classBody
+    pure $ \ms -> ClassDecl ms i mempty Nothing mempty body
+    -- pure $ \ms -> ClassDecl ms i tps (ext >>= List.head) mempty body
+
+enumClassDecl :: P (Mod ClassDecl)
+enumClassDecl = do
+    tok KW_Enum
+    i   <- ident
+    imp <- lopt implements
+    bod <- enumBody
+    pure $ \ms -> EnumDecl ms i imp bod
+
 enumBodyDecls :: P (List Decl)
-enumBodyDecls = semiColon *> classBodyStatements
+enumBodyDecls = fix $ \_ -> semiColon *> classBodyStatements
+
+enumBody :: P EnumBody
+enumBody = fix $ \_ -> braces $ do
+    ecs <- seplist enumConst comma
+    PC.optional comma
+    eds <- lopt enumBodyDecls
+    pure $ EnumBody ecs eds
+
+enumConst :: P EnumConstant
+enumConst = do
+    id  <- ident
+    as  <- lopt args
+    mcb <- optMaybe classBody
+    pure $ EnumConstant id as mcb
+
+classBody :: P ClassBody 
+classBody = fix $ \_ -> ClassBody <$> braces classBodyStatements
 
 classBodyStatements :: P (List Decl)
-classBodyStatements = List.catMaybes <$> list classBodyStatement
+classBodyStatements = List.catMaybes <$> list (fix $ \_ -> classBodyStatement)
 
 classBodyStatement :: P (Maybe Decl)
 classBodyStatement =
@@ -93,11 +154,23 @@ classBodyStatement =
     (PC.try $ do
        mst <- bopt (tok KW_Static)
        blk <- block
-       pure $ Just $ InitDecl mst blk) -- z<|>
-    -- (do ms  <- list modifier
-    --     dec <- memberDecl
-    --     pure $ Just $ MemberDecl (dec ms))
+       pure $ Just $ InitDecl mst blk) <|>
+    (do ms  <- list modifier
+        dec <- memberDecl
+        pure $ Just $ MemberDecl (dec ms))
 
+memberDecl :: P (Mod MemberDecl)
+memberDecl = fix $ \_ -> 
+    (PC.try $ do
+        cd  <- classDecl
+        pure $ \ms -> MemberClassDecl (cd ms)) <|>
+    (PC.try $ do
+        id  <- interfaceDecl
+        pure $ \ms -> MemberInterfaceDecl (id ms)) <|>
+    PC.try fieldDecl <|>
+    PC.try methodDecl <|>
+    constrDecl
+    
 constrDecl :: P (Mod MemberDecl)
 constrDecl = do
     tps <- lopt typeParams
@@ -134,17 +207,49 @@ explConstrInv = endSemi $
 args :: P (List Argument)
 args = parens $ seplist expression comma
 
+-- Interface Declaration 
+
+interfaceDecl :: P (Mod InterfaceDecl)
+interfaceDecl = do
+    tok KW_Interface
+    id  <- ident
+    tps <- lopt typeParams
+    exs <- lopt extends
+    bod <- interfaceBody
+    pure $ \ms -> InterfaceDecl ms id tps exs bod
+
+interfaceBody :: P InterfaceBody
+interfaceBody = fix $ \_ -> InterfaceBody <<< List.catMaybes <$> braces (list interfaceBodyDecl)
+
+interfaceBodyDecl :: P (Maybe MemberDecl)
+interfaceBodyDecl = semiColon *> pure Nothing <|>
+    do ms  <- list modifier
+       imd <- interfaceMemberDecl
+       pure $ Just (imd ms)
+
+interfaceMemberDecl :: P (Mod MemberDecl)
+interfaceMemberDecl = fix $ \_ -> 
+    (do cd  <- classDecl
+        pure $ \ms -> MemberClassDecl (cd ms)) <|>
+    (do id  <- PC.try interfaceDecl
+        pure $ \ms -> MemberInterfaceDecl (id ms)) <|>
+    fieldDecl
+
 -- Modifiers
 
 modifier :: P Modifier
 modifier =
-        tok KW_Public      *> pure Public
-    <|> tok KW_Protected   *> pure Protected
-    <|> tok KW_Private     *> pure Private
-    <|> tok KW_Abstract    *> pure Abstract
-    <|> tok KW_Static      *> pure Static
-    <|> tok KW_Final       *> pure Final
-    <|> tok KW_Transient   *> pure Transient
+        tok KW_Static        *> pure Static
+    <|> tok KW_Public        *> pure Public
+    <|> tok KW_Protected     *> pure Protected
+    <|> tok KW_Private       *> pure Private
+    <|> tok KW_Abstract      *> pure Abstract
+    <|> tok KW_Final         *> pure Final
+    <|> tok KW_Transient     *> pure Transient
+    <|> tok KW_With_Share    *> pure With_Share
+    <|> tok KW_Without_Share *> pure Without_Share
+    <|> tok KW_Inherit_Share *> pure Inherit_Share
+    <|> tok KW_Override      *> pure Override 
     <|> Annotation <$> annotation
 
 annotation :: P Annotation
@@ -177,16 +282,23 @@ varDecls = seplist1 varDecl comma
 varDecl :: P VarDecl 
 varDecl = do
     vdi <- varDeclId
-    vi <- optMaybe $ tok Op_Equal *> varInit 
+    vi  <- optMaybe $ tok Op_Equal *> varInit 
     pure $ VarDecl vdi vi 
 
 varDeclId :: P VarDeclId 
 varDeclId = do 
     id <- ident
-    pure $ VarDeclArray $ VarId id
+    abs <- list arrBrackets
+    pure $ foldl (\f _ -> VarDeclArray <<< f) VarId abs id
 
 varInit :: P VarInit
-varInit = InitExp <$> expression 
+varInit = fix $ \_ -> InitArray <$> arrayInit <|> InitExp <$> expression 
+
+arrayInit :: P ArrayInit
+arrayInit = fix $ \_ -> braces $ do
+    vis <- seplist varInit comma
+    _ <- optMaybe comma
+    pure $ ArrayInit vis
 
 -- more to be added
 expression :: P Exp
@@ -227,7 +339,7 @@ typeParams = angles $ seplist1 typeParam comma
 typeParam :: P TypeParam
 typeParam = do
     i  <- ident
-    rf <- PC.optionMaybe extends
+    rf <- lopt extends
     pure $ TypeParam i rf
 
 typeArgs :: P (List TypeArgument)
@@ -240,8 +352,11 @@ typeArg = fix \_ -> do
     pure $ ActualType r
 
 ---------------- Types ---------------------
-extends :: P RefType
-extends = tok KW_Extends *> refType
+extends :: P (List RefType)
+extends = tok KW_Extends *> refTypeList
+
+implements :: P (List RefType)
+implements = tok KW_Implements *> refTypeList
 
 refTypeArgs :: P (List RefType)
 refTypeArgs = angles refTypeList
@@ -272,14 +387,14 @@ classTypeSpec = do
     pure $ Tuple i tas
 
 type_ :: P Type
-type_ = PrimType <$> primType
+type_ = PC.try (RefType <$> refType) <|> PrimType <$> primType
 
 -- return type of a methodx
 resultType :: P (Maybe Type)
 resultType = tok KW_Void *> pure Nothing <|> Just <$> type_ <?> "resultType"
 
 primType :: P PrimType
-primType =
+primType = 
     tok KW_Boolean  *> pure BooleanT  <|>
     tok KW_Object   *> pure ObjectT   <|>
     tok KW_Decimal  *> pure DecimalT  <|>
@@ -328,9 +443,10 @@ semiColon = tok SemiColon
 period    = tok Period
 
 javaToken :: forall a. (Token -> Maybe a) -> P a
-javaToken f = PC.try $ do
+javaToken f = do
     (L _ t) <- PT.token (\(L pos _) -> Newtype.unwrap pos)
-    maybe (fail "error parsing toking") pure $ f t
+    p <- position
+    maybe (fail $ "error parsing toking: " <> show t <> ": " <> show p) pure $ f t
 
 tok :: Token -> P Unit
 tok t = javaToken (\r -> if r == t then Just unit else Nothing)

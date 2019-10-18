@@ -42,7 +42,7 @@ data TypeArgument = ActualType RefType
 
 -- | A class is generic if it declares one or more type variables. These type variables are known
 --   as the type parameters of the class.
-data TypeParam = TypeParam Ident (Maybe RefType)
+data TypeParam = TypeParam Ident (List RefType)
 
 -- | A primitive type is predefined by the Java programming language and named by its reserved keyword.
 data PrimType

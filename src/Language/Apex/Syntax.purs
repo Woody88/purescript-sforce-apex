@@ -55,7 +55,13 @@ instance showBlockStmt :: Show BlockStmt where
 instance showBlock :: Show Block where
     show = genericShow
 
+newtype CompilationUnit = CompilationUnit (List TypeDecl)
+
 ----------------------- Declation Types -----------------------------------
+-- | A type declaration declares a class type or an interface type.
+data TypeDecl
+    = ClassTypeDecl ClassDecl
+    | InterfaceTypeDecl InterfaceDecl
 
 -- | A class declaration specifies a new named reference type.
 data ClassDecl
@@ -103,8 +109,8 @@ data MemberDecl
     | ConstructorDecl (List Modifier) (List TypeParam) Ident (List FormalParam) ConstructorBody
     -- | A member class is a class whose declaration is directly enclosed in another class or interface declaration.
     | MemberClassDecl ClassDecl
-    -- -- | A member interface is an interface whose declaration is directly enclosed in another class or interface declaration.
-    -- | MemberInterfaceDecl InterfaceDecl
+    -- | A member interface is an interface whose declaration is directly enclosed in another class or interface declaration.
+    | MemberInterfaceDecl InterfaceDecl
 
 -- | A method body is either a block of code that implements the method or simply a
 --   semicolon, indicating the lack of an implementation (modelled by 'Nothing').
@@ -117,7 +123,7 @@ data VarDecl
 -- | The name of a variable in a declaration, which may be an array.
 data VarDeclId
     = VarId Ident
-    | VarDeclArray VarDeclId
+    | VarDeclArray VarDeclId 
     -- ^ Multi-dimensional arrays are represented by nested applications of 'VarDeclArray'.
 
 -- | Explicit initializer for a variable declaration.
@@ -144,6 +150,10 @@ data Modifier
     | Final
     | Static
     | Transient
+    | With_Share
+    | Without_Share
+    | Inherit_Share
+    | Override
     | Annotation Annotation
 
 -- | Annotations may contain  annotations or (loosely) expressions
@@ -188,8 +198,9 @@ derive instance genericEnumBody :: Generic EnumBody _
 derive instance genericEnumConstant :: Generic EnumConstant _
 derive instance genericInterfaceDecl :: Generic InterfaceDecl _
 derive instance genericInterfaceBody :: Generic InterfaceBody _
-
-
+derive instance genericTypeDecl :: Generic TypeDecl _
+derive instance genericCompilationUnit :: Generic CompilationUnit _
+derive instance genericTuple3 :: Generic (Tuple3 a b c) _
 
 derive instance eqOp :: Eq Op
 derive instance eqExp :: Eq Exp
@@ -212,12 +223,23 @@ derive instance eqEnumBody :: Eq EnumBody
 derive instance eqEnumConstant :: Eq EnumConstant 
 derive instance eqInterfaceDecl :: Eq InterfaceDecl 
 derive instance eqInterfaceBody :: Eq InterfaceBody 
+derive instance eqTypeDecl :: Eq TypeDecl 
+derive instance eqCompilationUnit :: Eq CompilationUnit 
+
+instance showTuple3 :: (Show a, Show b, Show c) => Show (Tuple3 a b c) where 
+    show = genericShow
+
+instance showCompilationUnit :: Show CompilationUnit where 
+    show = genericShow
+
+instance showTypeDecl :: Show TypeDecl where 
+    show = genericShow
 
 instance showInterfaceDecl :: Show InterfaceDecl where 
     show = genericShow
 
 instance showInterfaceBody :: Show InterfaceBody where 
-    show = genericShow
+    show (InterfaceBody b) = "(InterfaceBody " <> show b <> ")"
 
 instance showClassBody :: Show ClassBody where 
     show = genericShow
@@ -286,4 +308,8 @@ instance showModifier :: Show Modifier where
    show Final = "final"
    show Static = "static"
    show Transient = "transient"
+   show With_Share = "with sharing"
+   show Without_Share = "without sharing"
+   show Inherit_Share = "inherit sharing"
+   show Override = "override"
    show (Annotation a) = show a
