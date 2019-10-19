@@ -1,26 +1,28 @@
 module Language.Apex.Parser where 
 
 
+import Data.Either
+import Language.Apex.Lexer
+import Language.Apex.Syntax
+import Language.Apex.Syntax.Types
 import Prelude
-import Control.Lazy (fix)
+import Text.Parsing.Parser.Pos
+
 import Control.Alt ((<|>))
 import Control.Apply ((*>))
+import Control.Lazy (fix)
 import Control.Monad.State (gets, modify_)
 import Data.Foldable (foldl)
-import Data.Tuple (Tuple(..))
 import Data.List (List, (:))
-import Data.List as List 
-import Data.Either 
+import Data.List as List
 import Data.Maybe (Maybe(..), isJust, fromMaybe, maybe)
+import Data.Newtype (class Newtype)
 import Data.Newtype as Newtype
-import Text.Parsing.Parser.Pos 
-import Language.Apex.Lexer 
+import Data.Tuple (Tuple(..))
 import Language.Apex.Lexer.Types (L(..), Token(..))
-import Language.Apex.Syntax 
-import Language.Apex.Syntax.Types 
-import Text.Parsing.Parser (Parser, ParseError, position, runParser, fail)
-import Text.Parsing.Parser.Combinators as PC
+import Text.Parsing.Parser (ParseState(..), Parser, ParseError, position, runParser, fail)
 import Text.Parsing.Parser.Combinators ((<?>))
+import Text.Parsing.Parser.Combinators as PC
 import Text.Parsing.Parser.String as PS
 import Text.Parsing.Parser.Token as PT
 
@@ -144,7 +146,7 @@ classBody :: P ClassBody
 classBody = fix $ \_ -> ClassBody <$> braces classBodyStatements
 
 classBodyStatements :: P (List Decl)
-classBodyStatements = List.catMaybes <$> list (fix $ \_ -> classBodyStatement)
+classBodyStatements = fix $ \_ -> List.catMaybes <$> list classBodyStatement
 
 classBodyStatement :: P (Maybe Decl)
 classBodyStatement =
@@ -155,7 +157,8 @@ classBodyStatement =
        mst <- bopt (tok KW_Static)
        blk <- block
        pure $ Just $ InitDecl mst blk) <|>
-    (do ms  <- list modifier
+    (PC.try $ do 
+        ms  <- list modifier
         dec <- memberDecl
         pure $ Just $ MemberDecl (dec ms))
 
@@ -442,14 +445,37 @@ colon     = tok Op_Colon
 semiColon = tok SemiColon
 period    = tok Period
 
+--token :: forall t s a. (Position -> t -> List t -> Position) -> (t -> String) -> (t -> Maybe a) -> P a
+token nextpos showt test = do
+    input <- gets \(ParseState input _ _) -> input
+    case List.uncons input of
+      Nothing -> fail "Unexpected EOF"
+      Just {head,tail} -> do
+        case test head of 
+            Nothing -> fail $ "Unexpected token: " <> showt head
+            Just  x -> do
+                _ <- modify_ \(ParseState _ pos _) -> ParseState tail (nextpos pos head tail) true
+                
+                pure x
+
+javaToken' :: forall a. (Token -> Maybe a) -> P a
+javaToken' test =  token posT showT testT
+    where 
+        showT (L _ t) = show t
+        posT  _ (L p _) _ = Newtype.unwrap p
+        testT (L _ t) = test t
+
 javaToken :: forall a. (Token -> Maybe a) -> P a
 javaToken f = do
     (L _ t) <- PT.token (\(L pos _) -> Newtype.unwrap pos)
     p <- position
     maybe (fail $ "error parsing toking: " <> show t <> ": " <> show p) pure $ f t
 
-tok :: Token -> P Unit
-tok t = javaToken (\r -> if r == t then Just unit else Nothing)
+tok :: Token -> P Unit 
+tok t = javaToken' (\r -> if r == t then Just unit else Nothing)
+
+-- tok :: Token -> P Unit
+-- tok t = javaToken (\r -> if r == t then Just unit else Nothing)
 
 optMaybe :: forall a. P a -> P (Maybe a)
 optMaybe = PC.optionMaybe 
