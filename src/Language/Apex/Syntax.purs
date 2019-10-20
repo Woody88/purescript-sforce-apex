@@ -26,8 +26,145 @@ data AssignOp = EqualA  | MultA   | DivA     | RemA | AddA | SubA
 
 data Exp 
     = Lit Literal
-     -- | The application of a binary operator to two operand expressions.
+    -- | A class literal, which is an expression consisting of the name of a class, interface, array,
+    --   or primitive type, or the pseudo-type void (modelled by 'Nothing'), followed by a `.' and the token class.
+    | ClassLit (Maybe Type)
+    -- | The keyword @this@ denotes a value that is a reference to the object for which the instance method
+    --   was invoked, or to the object being constructed.
+    | This
+    -- | Any lexically enclosing instance can be referred to by explicitly qualifying the keyword this.
+    | ThisClass Name
+    -- | A class instance creation expression is used to create new objects that are instances of classes.
+    -- | The first argument is a list of non-wildcard type arguments to a generic constructor.
+    --   What follows is the type to be instantiated, the list of arguments passed to the constructor, and
+    --   optionally a class body that makes the constructor result in an object of an /anonymous/ class.
+    | InstanceCreation (List TypeArgument) ClassType (List Argument) (Maybe ClassBody)
+    -- | The application of a binary operator to two operand expressions.
     | BinOp Exp Op Exp
+    -- | An array instance creation expression is used to create new arrays. The last argument denotes the number
+    --   of dimensions that have no explicit length given. These dimensions must be given last.
+    | ArrayCreate Type (List Exp) Int
+    -- | An array instance creation expression may come with an explicit initializer. Such expressions may not
+    --   be given explicit lengths for any of its dimensions.
+    | ArrayCreateInit Type Int ArrayInit
+    -- | Assignment of the result of an expression to a variable.
+    | Assign Lhs AssignOp Exp
+    -- | An expression name, e.g. a variable.
+    | ExpName Name
+    -- | Post-incrementation expression, i.e. an expression followed by @++@.
+    | PostIncrement Exp
+    -- | Post-decrementation expression, i.e. an expression followed by @--@.
+    | PostDecrement Exp
+    -- | Pre-incrementation expression, i.e. an expression preceded by @++@.
+    | PreIncrement  Exp
+    -- | Pre-decrementation expression, i.e. an expression preceded by @--@.
+    | PreDecrement  Exp
+    -- | Unary plus, the promotion of the value of the expression to a primitive numeric type.
+    | PrePlus  Exp
+    -- | Unary minus, the promotion of the negation of the value of the expression to a primitive numeric type.
+    | PreMinus Exp
+    -- | Unary bitwise complementation: note that, in all cases, @~x@ equals @(-x)-1@.
+    | PreBitCompl Exp
+    -- | Logical complementation of boolean values.
+    | PreNot  Exp
+    -- | A cast expression converts, at run time, a value of one numeric type to a similar value of another
+    --   numeric type; or confirms, at compile time, that the type of an expression is boolean; or checks,
+    --   at run time, that a reference value refers to an object whose class is compatible with a specified
+    --   reference type.
+    | Cast  Type Exp
+    -- | A qualified class instance creation expression enables the creation of instances of inner member classes
+    --   and their anonymous subclasses.
+    | QualInstanceCreation Exp (List TypeArgument) Ident (List Argument) (Maybe ClassBody)
+    -- | An array access expression refers to a variable that is a component of an array.
+    | ArrayAccess ArrayIndex
+    -- | A method invocation expression.
+    | MethodInv MethodInvocation
+    -- | A field access expression.
+    | FieldAccess FieldAccess
+    -- | Method reference
+    | MethodRef Name Ident
+    
+-- | The left-hand side of an assignment expression. This operand may be a named variable, such as a local
+--   variable or a field of the current object or class, or it may be a computed variable, as can result from
+--   a field access or an array access.
+data Lhs
+    = NameLhs Name          -- ^ Assign to a variable
+    | FieldLhs FieldAccess  -- ^ Assign through a field access
+    | ArrayLhs ArrayIndex   -- ^ Assign to an array
+
+-- | Array access
+data ArrayIndex = ArrayIndex Exp (List Exp)    -- ^ Index into an array
+
+-- | A field access expression may access a field of an object or array, a reference to which is the value
+--   of either an expression or the special keyword super.
+data FieldAccess
+    = PrimaryFieldAccess Exp Ident      -- ^ Accessing a field of an object or array computed from an expression.
+    | SuperFieldAccess Ident            -- ^ Accessing a field of the superclass.
+    | ClassFieldAccess Name Ident       -- ^ Accessing a (static) field of a named class.
+
+-- | A Java statement.
+data Stmt
+    -- | A statement can be a nested block.
+    = StmtBlock Block
+    -- | The @if-then@ statement allows conditional execution of a statement.
+    | IfThen Exp Stmt
+    -- | The @if-then-else@ statement allows conditional choice of two statements, executing one or the other but not both.
+    | IfThenElse Exp Stmt Stmt
+    -- | The @while@ statement executes an expression and a statement repeatedly until the value of the expression is false.
+    | While Exp Stmt
+    -- | The basic @for@ statement executes some initialization code, then executes an expression, a statement, and some
+    --   update code repeatedly until the value of the expression is false.
+    | BasicFor (Maybe ForInit) (Maybe Exp) (Maybe (List Exp)) Stmt
+    -- | The enhanced @for@ statement iterates over an array or a value of a class that implements the @iterator@ interface.
+    | EnhancedFor (List Modifier) Type Ident Exp Stmt
+    -- | An empty statement does nothing.
+    | Empty
+    -- | Certain kinds of expressions may be used as statements by following them with semicolons:
+    --   assignments, pre- or post-inc- or decrementation, method invocation or class instance
+    --   creation expressions.
+    | ExpStmt Exp
+    -- | An assertion is a statement containing a boolean expression, where an error is reported if the expression
+    --   evaluates to false.
+    | Assert Exp (Maybe Exp)
+    -- | The switch statement transfers control to one of several statements depending on the value of an expression.
+    | Switch Exp (List SwitchBlock)
+    -- | The @do@ statement executes a statement and an expression repeatedly until the value of the expression is false.
+    | Do Stmt Exp
+    -- | A @break@ statement transfers control out of an enclosing statement.
+    | Break (Maybe Ident)
+    -- | A @continue@ statement may occur only in a while, do, or for statement. Control passes to the loop-continuation
+    --   point of that statement.
+    | Continue (Maybe Ident)
+    -- A @return@ statement returns control to the invoker of a method or constructor.
+    | Return (Maybe Exp)
+    -- | A @throw@ statement causes an exception to be thrown.
+    | Throw Exp
+    -- | A try statement executes a block. If a value is thrown and the try statement has one or more catch clauses that
+    --   can catch it, then control will be transferred to the first such catch clause. If the try statement has a finally
+    --   clause, then another block of code is executed, no matter whether the try block completes normally or abruptly,
+    --   and no matter whether a catch clause is first given control.
+    | Try Block (List Catch) (Maybe {- finally -} Block)
+    -- | Statements may have label prefixes.
+    | Labeled Ident Stmt
+  
+-- | Initialization code for a basic @for@ statement.
+data ForInit
+    = ForLocalVars (List Modifier) Type (List VarDecl)
+    | ForInitExps (List Exp)
+
+-- | If a value is thrown and the try statement has one or more catch clauses that can catch it, then control will be
+--   transferred to the first such catch clause.
+data Catch = Catch FormalParam Block
+
+-- | A block of code labelled with a @case@ or @default@ within a @switch@ statement.
+data SwitchBlock
+    = SwitchBlock SwitchLabel (List BlockStmt)
+
+-- | A label within a @switch@ statement.
+data SwitchLabel
+    -- | The expression contained in the @case@ must be a 'Lit' or an @enum@ constant.
+    = SwitchCase Exp
+    | Default
 
 -----------------------------------------------------------------------
 -- Statements
@@ -41,7 +178,8 @@ data Block = Block (List BlockStmt)
 data BlockStmt
     = LocalVars (List Modifier) Type (List VarDecl)
     -- BlockStmt Stmt
-    -- | LocalClass ClassDecl
+    | LocalClass ClassDecl
+    | BlockStmt Stmt
 
 derive instance genericBlock :: Generic Block _ 
 derive instance genericBlockStmt :: Generic BlockStmt _ 
@@ -50,7 +188,8 @@ derive instance eqBlockStmt :: Eq BlockStmt
 derive instance eqBlock :: Eq Block
 
 instance showBlockStmt :: Show BlockStmt where
-    show = genericShow
+    show (BlockStmt st) = "(BlockStmt " <> show st <> ")"
+    show x = genericShow x
 
 instance showBlock :: Show Block where
     show = genericShow
@@ -177,6 +316,19 @@ data ExplConstrInv
     | SuperInvoke            (List RefType) (List Argument)
     | PrimarySuperInvoke Exp (List RefType) (List Argument)
 
+-- | A method invocation expression is used to invoke a class or instance method.
+data MethodInvocation
+    -- | Invoking a specific named method.
+    = MethodCall Name (List Argument)
+    -- | Invoking a method of a class computed from a primary expression, giving arguments for any generic type parameters.
+    | PrimaryMethodCall Exp (List RefType) Ident (List Argument)
+    -- | Invoking a method of the super class, giving arguments for any generic type parameters.
+    | SuperMethodCall (List RefType) Ident (List Argument)
+    -- | Invoking a method of the superclass of a named class, giving arguments for any generic type parameters.
+    | ClassMethodCall Name (List RefType) Ident (List Argument)
+    -- | Invoking a method of a named type, giving arguments for any generic type parameters.
+    | TypeMethodCall  Name (List RefType) Ident (List Argument)
+
 derive instance genericOp :: Generic Op _
 derive instance genericExp :: Generic Exp _
 derive instance genericVarDecl :: Generic VarDecl _
@@ -201,6 +353,17 @@ derive instance genericInterfaceBody :: Generic InterfaceBody _
 derive instance genericTypeDecl :: Generic TypeDecl _
 derive instance genericCompilationUnit :: Generic CompilationUnit _
 derive instance genericTuple3 :: Generic (Tuple3 a b c) _
+derive instance genericArrayIndex :: Generic ArrayIndex _
+derive instance genericFieldAccess :: Generic FieldAccess _
+derive instance genericLhs :: Generic Lhs _
+derive instance genericAssignOp :: Generic AssignOp _
+derive instance genericMethodInvocation :: Generic MethodInvocation _
+derive instance genericSwitchLabel :: Generic SwitchLabel _
+derive instance genericSwitchBlock :: Generic SwitchBlock _
+derive instance genericCatch :: Generic Catch _
+derive instance genericForInit :: Generic ForInit _
+derive instance genericStmt :: Generic Stmt _
+
 
 derive instance eqOp :: Eq Op
 derive instance eqExp :: Eq Exp
@@ -225,6 +388,47 @@ derive instance eqInterfaceDecl :: Eq InterfaceDecl
 derive instance eqInterfaceBody :: Eq InterfaceBody 
 derive instance eqTypeDecl :: Eq TypeDecl 
 derive instance eqCompilationUnit :: Eq CompilationUnit 
+derive instance eqArrayIndex :: Eq ArrayIndex 
+derive instance eqFieldAccess :: Eq FieldAccess 
+derive instance eqLhs :: Eq Lhs 
+derive instance eqAssignOp :: Eq AssignOp 
+derive instance eqMethodInvocation :: Eq MethodInvocation 
+derive instance eqSwitchLabel :: Eq SwitchLabel 
+derive instance eqSwitchBlock :: Eq SwitchBlock 
+derive instance eqCatch :: Eq Catch 
+derive instance eqForInit :: Eq ForInit 
+derive instance eqStmt :: Eq Stmt 
+
+instance showStmt ::  Show Stmt where 
+    show (Try b lc mb) = "(Try " <> show b <> show lc <> show mb <> ")"
+    show x = genericShow x 
+
+instance showForInit ::  Show ForInit where 
+    show = genericShow
+
+instance showCatch ::  Show Catch where 
+    show (Catch fp b) = "(Catch " <> show fp <> show b <> ")"
+
+instance showSwitchBlock ::  Show SwitchBlock where 
+    show (SwitchBlock sl lb) = "(SwitchBlock " <> show sl <> show lb <> ")"
+
+instance showSwitchLabel ::  Show SwitchLabel where 
+    show = genericShow
+
+instance showMethodInvocation ::  Show MethodInvocation where 
+    show = genericShow
+
+instance showAssignOp ::  Show AssignOp where 
+    show = genericShow
+
+instance showLhs ::  Show Lhs where 
+    show = genericShow
+
+instance showFieldAccess ::  Show FieldAccess where 
+    show = genericShow
+
+instance showArrayIndex ::  Show ArrayIndex where 
+    show = genericShow
 
 instance showTuple3 :: (Show a, Show b, Show c) => Show (Tuple3 a b c) where 
     show = genericShow
@@ -291,8 +495,8 @@ instance showArrayInit :: Show ArrayInit where
 
 instance showExp :: Show Exp where 
     show exp = case exp of 
-        Lit lit -> show lit 
-        (BinOp x op y) -> show x <> " " <> show op <> " " <> show y
+        (BinOp x op y) -> "(BinOp " <> show x <> " " <> show op <> " " <> show y <> ")"
+        _ -> genericShow exp
 
 instance showElementValue :: Show ElementValue where 
     show = genericShow 
