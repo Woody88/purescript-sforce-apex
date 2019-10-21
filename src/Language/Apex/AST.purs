@@ -453,21 +453,19 @@ data Primary
 --                     | Diamond
 --                     PRODUCTION
 
--- -- | Field Access [fieldAccess]
--- --  Style 1 <expression>.field
--- --  Style 2 super.field
--- --  Style 3 <expression>.super.field
--- data FieldAccess = ExprFieldAccess Primary Ident
---                  | SelfParentFieldAccess Ident
---                  | ParentFieldAccess TypeName Ident
---                  PRODUCTION
+-- | Field Access [fieldAccess]
+--  Style 1 <expression>.field
+--  Style 2 super.field
+--  Style 3 <expression>.super.field
+data FieldAccess = ExprFieldAccess Primary Ident
+                 | SelfParentFieldAccess Ident
+                 | ParentFieldAccess TypeName Ident
 
--- -- | Array Access
--- -- Style 1 <name>[<expression>]
--- -- Style 2 <primary>[<expression>]
--- data ArrayAccess = NormalArrayAccess TypeName Expression
---                  | ExprArrayAccess Primary Expression
---                  PRODUCTION
+-- | Array Access
+-- Style 1 <name>[<expression>]
+-- Style 2 <primary>[<expression>]
+data ArrayAccess = NormalArrayAccess TypeName Expression
+                 | ExprArrayAccess Primary Expression
 
 -- data MethodInvocation =
 --           NormalMethodInvocation TypeName (Maybe ArgList)
@@ -560,6 +558,14 @@ derive instance genericExpression :: Generic Expression _
 derive instance genericAssignmentExpression :: Generic AssignmentExpression _ 
 derive instance genericTerm :: Generic Term _ 
 derive instance genericLHS :: Generic LHS _ 
+derive instance genericFieldAccess :: Generic FieldAccess _ 
+derive instance genericArrayAccess :: Generic ArrayAccess _ 
+
+instance showArrayAccess :: Show ArrayAccess where 
+    show = genericShow
+
+instance showFieldAccess :: Show FieldAccess where 
+    show = genericShow 
 
 instance showLHS :: Show LHS where 
     show = genericShow 
