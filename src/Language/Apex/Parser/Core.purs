@@ -13,6 +13,7 @@ import Data.List.Partial as LP
 import Data.Map as M
 import Data.Maybe (Maybe(..))
 import Data.Tuple (Tuple(..), fst)
+import Data.Tuple.Nested ((/\))
 import Text.Parsing.Parser (ParseState(..), Parser, fail)
 import Text.Parsing.Parser.Pos (Position(..))
 
@@ -140,14 +141,14 @@ dot             = satisfy isPeriod
 --     s <- option [] (many1 suffix)
 --     return $ foldl (\x y -> y x) l s
 
--- -- | Stores valid keywords for class modifier.
--- modifierTable :: M.Map String Modifier
--- modifierTable = M.fromList [
---     ("public", Public), ("protected", Protected), ("private", Private),
---     ("static", Static), ("final", Final), ("strictfp", StrictFP),
---     ("abstract", Abstract), ("volatile", Volatile), ("transient", Transient),
---     ("synchronized", Synchronized), ("native", Native), ("interface", Interface),
---     ("default", Default)]
+-- | Stores valid keywords for class modifier.
+modifierTable :: M.Map String Modifier
+modifierTable = M.fromFoldable [
+    ("public" /\ Public), ("protected" /\ Protected), ("private" /\ Private),
+    ("static" /\ Static), ("final" /\ Final), ("virtual" /\ Virtual), ("override" /\ Override),
+    ("abstract" /\ Abstract), ("extends" /\ Extends), ("transient" /\ Transient),
+    ("with sharing" /\ WithShare), ("without sharing" /\ WithoutShare), ("interface" /\ Interface),
+    ("inherit sharing" /\ InheritShare)]
 
 -- -- | Stores valid keywords for class modifier.
 -- classModifierTable :: S.HashSet String

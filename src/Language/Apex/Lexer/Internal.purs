@@ -28,7 +28,7 @@ infixr 6 mkTokenWith as <<=:
     
 apexReservedNames = 
     [ "abstract", "assert", "boolean", "break", "case", "catch", "when", "class"
-    , "continue", "default", "do", "double", "else", "enum", "virtual"
+    , "continue", "default", "do", "double", "else", "enum", "virtual", "override"
     , "extends", "final", "finally", "long", "for", "if", "implements"
     , "instanceof", "integer", "interface", "long", "new", "private"
     , "protected", "public", "return", "static", "super", "with sharing", "without sharing", "inherited sharing"

@@ -132,10 +132,10 @@ data TypeArg = ActualType RefType
 --                         Ident (Maybe SuperInterfaces) EnumBody
 --                       PRODUCTION
 
-data Modifier = Public    | Protected    | Private   | Abstract
-              | Static    | Final        | Virtual   | Extends
-              | Transient | Interface    | WithShare | WithoutShare 
-              | InheritShare 
+data Modifier = Public       | Protected    | Private   | Abstract
+              | Static       | Final        | Virtual   | Extends
+              | Transient    | Interface    | WithShare | WithoutShare 
+              | InheritShare | Override
 
 -- type ClassModifier = Modifier
 
