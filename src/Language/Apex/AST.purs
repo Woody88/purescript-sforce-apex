@@ -132,11 +132,10 @@ data TypeArg = ActualType RefType
 --                         Ident (Maybe SuperInterfaces) EnumBody
 --                       PRODUCTION
 
--- data Modifier = Public    | Protected    | Private   | Abstract
---               | Static    | Final        | StrictFP  | Volatile
---               | Transient | Synchronized | Native    | Interface
---               | Default
---               PRODUCTION
+data Modifier = Public    | Protected    | Private   | Abstract
+              | Static    | Final        | Virtual   | Extends
+              | Transient | Interface    | WithShare | WithoutShare 
+              | InheritShare 
 
 -- type ClassModifier = Modifier
 
@@ -557,6 +556,10 @@ data TypeArg = ActualType RefType
 --           PRODUCTION
 
 derive instance genericT :: Generic T _ 
+derive instance genericModifier :: Generic Modifier _ 
+
+instance showModifier :: Show Modifier where 
+    show = genericShow
 
 instance showT :: Show T where 
     show = genericShow
