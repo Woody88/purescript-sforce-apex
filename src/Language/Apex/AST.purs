@@ -16,7 +16,7 @@ type Token = Tuple T Position
 data T  = Keyword    String
         | Operator   String
         -- | Tokens
-        | TokInt     Int
+        | TokInteger Int
         | TokLong    BigInt
         | TokDouble  Number 
         | TokString  String
@@ -421,19 +421,18 @@ data Primary
     | Expr Expression
 --                 -- | Instant class creation
 --                 | ClassInstanceCreationExpression ClassInstanceCreation
---                 -- | Field access
---                 | FieldAccess FieldAccess
---                 -- | Array access
---                 | ArrayAccess ArrayAccess
+    -- | Field access
+    | FieldAccess FieldAccess
+    -- | Array access
+    | ArrayAccess ArrayAccess
 --                 -- | Method invocation
 --                 | MethodInvocation MethodInvocation
 --                 -- | Method reference
 --                 | MethodReference MethodReference
 --                 -- | Array creation expression
 --                 | ArrayCreation ArrayCreationExpr
---                 -- | Composition of two or more primaries.
---                 | Dot Primary Primary
---                 PRODUCTION
+    -- | Composition of two or more primaries.
+    | Dot Primary Primary
 
 -- -- | Class instance creation [classInstanceCreation]
 -- --  e.g  new Comparable<String> {
@@ -591,7 +590,9 @@ instance showExpression :: Show Expression where
     show = genericShow 
 
 instance showPrimary :: Show Primary where 
-    show = genericShow 
+    show (ArrayAccess x) = "(ArrayAccess " <> show x <> ")"
+    show (FieldAccess x) = "(FieldAccess " <> show x <> ")"
+    show x = genericShow x
 
 instance showArrayType :: Show ArrayType where 
     show (ClassOrInterfaceArrayT ct d) = "(ClassOrInterfaceArrayT " <> show ct <> show d <> ")" 

@@ -1,16 +1,12 @@
 module Language.Apex.Parser.Internal where
 
--- import Control.Applicative ((<$>), (*>), (<*), (<*>), pure)
--- import Control.Monad (replicateM)
--- import qualified Data.Set as S hiding (map)
--- import Data.Maybe (fromMaybe)
-
--- import Text.Parsec.Combinator
--- import Text.Parsec.Prim
--- import Text.Parsec.Expr
-
 import Language.Apex.AST
 import Language.Apex.Parser.Core
+import Prelude
+import Text.Parsing.Parser.Combinators
+
+import Control.Applicative ((*>), (<*))
+import Text.Parsing.Parser (fail)
 
 -- javaProgram :: JParser CompilationUnit
 -- javaProgram = compilationUnit
@@ -21,20 +17,18 @@ import Language.Apex.Parser.Core
 -- ident :: JParser Ident
 -- ident = Ident <$> (getSS <$> satisfy isIdentifier)
 
--- literal :: JParser Primary
--- literal = Literal <$> do
---        tok <- getT
---        case tok of
---         TokInt t    -> return $ IntegerLiteral t
---         TokFloat s  -> return $ FloatingPointLiteral s
---         TokDouble s -> return $ FloatingPointLiteral s
---         TokLong t   -> return $ IntegerLiteral t
---         TokChar s   -> return $ CharacterLiteral s
---         TokString s -> return $ StringLiteral s
---         TokBool s   -> return $ BooleanLiteral s
---         TokNull     -> return NullLiteral
---         s           -> unexpected (show s)
---        <?> "literal"
+literal :: P Primary
+literal = Literal <$> do
+    tok <- getT
+    case tok of
+        TokInteger t -> pure $ IntegerLiteral t
+        TokDouble s  -> pure $ DoubleLiteral s
+        TokLong t    -> pure $ LongLiteral t
+        TokString s  -> pure $ StringLiteral s
+        TokBool s    -> pure $ BooleanLiteral s
+        TokNull      -> pure NullLiteral
+        s            -> fail (show s)
+    <?> "unexpected literal"
 
 -- -- | Java Name
 -- typeName :: JParser TypeName

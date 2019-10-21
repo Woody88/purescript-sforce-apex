@@ -28,7 +28,7 @@ tokenize = javaLexer.whiteSpace *> Array.many nextToken <* eof
 
 nextToken :: Parser String Token
 nextToken = choice $ map (javaLexer.lexeme <<< try)
-        [ identOrKeyword, comm, period, at, lParen, rParen, lSquare, rSquare, lBrace, rBrace
+        [ comm, period, at, lParen, rParen, lSquare, rSquare, lBrace, rBrace
         , semiColon, tokNull, tokBool, tokString, tokLong
-        , tokDouble, tokInt, op 
+        , tokDouble, tokInt, op, identOrKeyword
         ]

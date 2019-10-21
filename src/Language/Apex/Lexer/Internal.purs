@@ -75,7 +75,7 @@ sharingModeLiteral = withSharing <|> withoutSharing <|> inherithSharing
         withoutSharing  = istring "without sharing"
         inherithSharing = istring "inherit sharing"
 
-tokInt      =  TokInt       <<=: integerLiteral
+tokInt      =  TokInteger       <<=: integerLiteral
 tokDouble   =  TokDouble    <<=: doubleLiteral
 tokString   =  TokString    <<=: stringLiteral
 tokLong     =  TokLong      <<=: longLiteral
