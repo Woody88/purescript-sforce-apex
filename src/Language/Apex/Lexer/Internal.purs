@@ -1,324 +1,252 @@
-module Language.Apex.Lexer.Internal where 
+module Language.Apex.Lexer.Internal where
 
+import Language.Apex.AST
 import Prelude
+import Text.Parsing.Parser
+import Text.Parsing.Parser.Language
+import Text.Parsing.Parser.Token
 
 import Control.Alt ((<|>))
 import Control.Apply ((*>), (<*))
-import Data.Tuple (Tuple(..))
-import Data.Traversable (traverse)
 import Data.Array as Array
-import Data.Char.Unicode (isAlpha, toLower, toUpper)
-import Data.String.CodeUnits (toCharArray)
-import Data.Either (Either(..))
-import Data.HashSet as HS
-import Data.Int as Int
+import Data.BigInt (BigInt)
 import Data.BigInt as BigInt
-import Data.List (List, toUnfoldable)
-import Data.Maybe (Maybe, maybe)
-import Data.String.CodeUnits (fromCharArray)
-import Effect (Effect)
-import Effect.Console (logShow, log)
-import Text.Parsing.Parser (runParser, position, fail)
-import Text.Parsing.Parser.Combinators ((<?>))
-import Text.Parsing.Parser.Combinators as PC
-import Text.Parsing.Parser.Language as PL
-import Text.Parsing.Parser.String as PS
-import Text.Parsing.Parser.Token (LanguageDef, GenLanguageDef(..), TokenParser)
-import Text.Parsing.Parser.Token as PT
-import Language.Apex.Lexer.Types 
-import Language.Apex.Lexer.Utils 
-import Unsafe.Coerce (unsafeCoerce)
+import Data.Char.Unicode (isAlpha, toLower, toUpper)
+import Data.HashSet as S
+import Data.Maybe (maybe)
+import Data.String.CodeUnits (fromCharArray, toCharArray)
+import Data.Traversable (traverse)
+import Data.Tuple (Tuple(..))
+import Data.Tuple.Nested ((/\))
+import Text.Parsing.Parser.Combinators ((<?>), choice, notFollowedBy, try)
+import Text.Parsing.Parser.String (char, oneOf, satisfy, string)
 
+type P = Parser String 
 
-class ReadToken a where 
-    readToken :: P (L a)
+infixr 6 mkToken as <=:
+infixr 6 mkTokenWith as <<=:
+    
+apexReservedNames = 
+    [ "abstract", "assert", "boolean", "break", "case", "catch", "when", "class"
+    , "continue", "default", "do", "double", "else", "enum", "virtual"
+    , "extends", "final", "finally", "long", "for", "if", "implements"
+    , "instanceof", "integer", "interface", "long", "new", "private"
+    , "protected", "public", "return", "static", "super", "with sharing", "without sharing", "inherited sharing"
+    , "switch", "this", "throw","transient", "try", "void", "decimal", "while"
+    ]
 
-instance readTokenT :: ReadToken Token where 
-    readToken = 
-        PC.try (DoubleTok              <<=: doubleLiteral)  <|>
-        PC.try (IntegerTok             <<=: integerLiteral) <|>
-        PC.try (LongTok                <<=: longLiteral)    <|>
-        PC.try (StringTok              <<=: stringLiteral)  <|>
-        PC.try (BoolTok                <<=: boolLiteral)    <|>
-        PC.try (Period                 <=: period     )     <|>
-        PC.try (KW_Override            <=: str "override" ) <|>
-        PC.try (KW_With_Share          <=: str "with sharing" ) <|>
-        PC.try (KW_Without_Share       <=: str "without sharing") <|> 
-        PC.try (KW_Inherit_Share       <=: str "inherit sharing") <|>
-        PC.try (KW_Object              <=: str "object" ) <|>
-        PC.try (KW_Time                <=: str "time") <|> 
-        PC.try (KW_ID                  <=: str "id") <|>
-        PC.try (KW_Date                <=: str "date") <|> 
-        PC.try (KW_Datetime            <=: str "datetime") <|>
-        PC.try (KW_When                <=: str "when") <|> 
-        PC.try (KW_Abstract            <=: str "abstract") <|> 
-        PC.try (KW_Integer             <=: str "integer") <|> 
-        PC.try (KW_Assert              <=: str "assert") <|> 
-        PC.try (KW_Boolean             <=: str "boolean") <|> 
-        PC.try (KW_Break               <=: str "break") <|> 
-        PC.try (KW_Blob                <=: str "blob") <|> 
-        PC.try (KW_Case                <=: str "case") <|> 
-        PC.try (KW_Catch               <=: str "catch") <|> 
-        PC.try (KW_Class               <=: str "class") <|> 
-        PC.try (KW_Const               <=: str "const") <|> 
-        PC.try (KW_Continue            <=: str "continue") <|> 
-        PC.try (KW_Default             <=: str "default") <|> 
-        PC.try (KW_Do                  <=: str "do") <|> 
-        PC.try (KW_Double              <=: str "double") <|> 
-        PC.try (KW_Else                <=: str "else") <|> 
-        PC.try (KW_Enum                <=: str "enum") <|> 
-        PC.try (KW_Extends             <=: str "extends") <|> 
-        PC.try (KW_Final               <=: str "final") <|> 
-        PC.try (KW_Finally             <=: str "finally") <|> 
-        PC.try (KW_Decimal             <=: str "decimal") <|> 
-        PC.try (KW_For                 <=: str "for") <|> 
-        PC.try (KW_If                  <=: str "if") <|> 
-        PC.try (KW_Implements          <=: str "implements") <|> 
-        PC.try (KW_Import              <=: str "import") <|> 
-        PC.try (KW_Instanceof          <=: str "instanceof") <|> 
-        PC.try (KW_Interface           <=: str "interface") <|> 
-        PC.try (KW_Long                <=: str "long") <|> 
-        PC.try (KW_New                 <=: str "new") <|> 
-        PC.try (KW_Private             <=: str "private") <|> 
-        PC.try (KW_Protected           <=: str "protected") <|> 
-        PC.try (KW_Public              <=: str "public") <|> 
-        PC.try (KW_Return              <=: str "return") <|> 
-        PC.try (KW_Static              <=: str "static") <|> 
-        PC.try (KW_Super               <=: str "super") <|> 
-        PC.try (KW_Switch              <=: str "switch") <|> 
-        PC.try (KW_This                <=: str "this") <|> 
-        PC.try (KW_Transient           <=: str "transient") <|> 
-        PC.try (KW_Try                 <=: str "try") <|> 
-        PC.try (KW_Void                <=: str "void") <|> 
-        PC.try (KW_While               <=: str "while") <|> 
-        PC.try (OpenParen              <=: PS.char '(')     <|>
-        PC.try (CloseParen             <=: PS.char ')')     <|>
-        PC.try (OpenSquare             <=: PS.char '[')     <|>
-        PC.try (CloseSquare            <=: PS.char ']')     <|>
-        PC.try (OpenCurly              <=: PS.char '{')     <|>
-        PC.try (CloseCurly             <=: PS.char '}')     <|>
-        PC.try (Op_AtSign              <=: PS.char '@')     <|>
-        PC.try (SemiColon              <=: PS.char ';')     <|>
-        PC.try (Comma                  <=: PS.char ',')     <|>
-        PC.try (Period                 <=: period    )     <|>
-        PC.try (Op_Plus                <=: PS.char '+')     <|>
-        PC.try (Op_Minus               <=: PS.char '-')     <|>
-        PC.try (Op_Star                <=: PS.char '*')     <|>
-        PC.try (Op_Slash               <=: PS.char '/')     <|>
-        PC.try (Op_And                 <=: PS.char '&')     <|>
-        PC.try (Op_Or                  <=: PS.char '|')     <|>
-        PC.try (Op_Caret               <=: PS.char '^')     <|>
-        PC.try (Op_Percent             <=: PS.char '%')     <|>
-        PC.try (Op_Equal               <=: PS.char '=')     <|> 
-        PC.try (Op_GThan               <=: PS.char '>')     <|>
-        PC.try (Op_LThan               <=: PS.char '<')     <|>
-        PC.try (Op_Bang                <=: PS.char '!')     <|>
-        PC.try (Op_Tilde               <=: PS.char '~')     <|>
-        PC.try (Op_Query               <=: PS.char '?')     <|>
-        PC.try (Op_Colon               <=: PS.char ':')     <|>
-        PC.try (Op_Equals              <=: PS.string "==")    <|>
-        PC.try (Op_LThanE              <=: PS.string "<=")    <|>
-        PC.try (Op_GThanE              <=: PS.string ">=")    <|>
-        PC.try (Op_BangE               <=: PS.string "!=")    <|>
-        PC.try (Op_AAnd                <=: PS.string "&&")    <|>
-        PC.try (Op_OOr                 <=: PS.string "||")    <|>
-        PC.try (Op_PPlus               <=: PS.string "++")    <|>
-        PC.try (Op_MMinus              <=: PS.string "--")    <|>
-        PC.try (Op_LShift              <=: PS.string "<<")    <|>
-        PC.try (Op_PlusE               <=: PS.string "+=")    <|>
-        PC.try (Op_MinusE              <=: PS.string "-=")    <|>
-        PC.try (Op_StarE               <=: PS.string "*=")    <|>
-        PC.try (Op_SlashE              <=: PS.string "/=")    <|>
-        PC.try (Op_AndE                <=: PS.string "&=")    <|>
-        PC.try (Op_OrE                 <=: PS.string "|=")    <|>
-        PC.try (Op_CaretE              <=: PS.string "^=")    <|>
-        PC.try (Op_PercentE            <=: PS.string "%=")    <|>
-        PC.try (Op_LShiftE             <=: PS.string "<<=")   <|>
-        PC.try (Op_RShiftE             <=: PS.string ">>=")   <|>
-        PC.try (Op_RRShiftE            <=: PS.string ">>>=")  <|>
-        identTok
-        where 
-            period = (PS.char '.' <* PC.notFollowedBy PT.digit)
-            identTok = IdentTok <<=: identifier
-            str  = caseInsensitiveString
-            
--- Match the lowercase or uppercase form of 'c'
-caseInsensitiveChar c = PS.char (toLower c) <|> PS.char (toUpper c)
+apexeservedOpNames = 
+    [ "!=", "!", ">>>=", ">>>", ">>=", ">=", ">>", ">","=="
+    , "=", "|", "|=", "||", "&&", "&=", "&", "^=", "^","%"
+    , "%=", "*=", "*", "++", "+=", "+", "--", "-=", "-","/="
+    , "/", ":", "<<=", "<<", "<=", "<","?"
+    ]
 
--- Match the string 's', accepting either lowercase or uppercase form of each character 
-caseInsensitiveString s = PC.try (fromCharArray <$> traverse caseInsensitiveChar charList ) <?> ("\"" <> s <> "\"")
-    where 
-        charList = toCharArray s
+keywordTable = S.fromFoldable apexReservedNames
+operatorTable = S.fromFoldable apexeservedOpNames
+isKeyword = flip S.member keywordTable
+isOperator = flip S.member operatorTable
+
+javaLanguage :: LanguageDef 
+javaLanguage = do 
+    let javaStyl = unGenLanguageDef javaStyle
+    LanguageDef $ 
+        javaStyl { reservedNames     = apexReservedNames
+                 , reservedOpNames   = apexeservedOpNames
+                 , opStart           = oneOf $ toCharArray "!%&*+/<=>?^|-:."
+                 , opLetter          = oneOf $ toCharArray "&*+/=^|-"
+                 }
 
 javaLexer :: TokenParser
-javaLexer = PT.makeTokenParser javaLanguage
+javaLexer = makeTokenParser javaLanguage
 
-javaLanguage :: LanguageDef
-javaLanguage = do 
-    let 
-        (LanguageDef javaStyle) = PL.javaStyle 
-        javaStyleDef = LanguageDef $ javaStyle 
-                        { reservedNames = javaReservedNames
-                        , reservedOpNames = javaReservedOpNames
-                        } 
-    javaStyleDef
-    
-javaReservedNames = 
-    [ "abstract" , "assert" , "boolean" , "break" , "blob" , "byte" , "case" , "catch" , "char" , "class" , "const" 
-    , "continue" , "date" , "dfatetime" , "default" , "decimal" , "do" , "double" , "else" , "enum" , "extends" , "final" 
-    , "finally" , "for" , "if" , "id" , "integer" , "implements" , "instanceof" , "interface" , "long" , "new" 
-    , "object" , "private" , "protected" , "public" , "return" , "static" , "super" , "switch" , "string" , "time" , "this" 
-    , "throw" , "throws" , "transient" , "try" , "void" , "while", "when", "null"
-    ]
+identOrKeyword :: P Token
+identOrKeyword = do
+    p <- position
+    s <- try sharingModeLiteral <|> identifier
+    pure $ if isKeyword s
+        then (Keyword s /\ p)
+        else (TokIdent s /\ p)
 
-javaReservedOpNames =
-    [ "=" , ">" , "<" , "!" , "~" , "?" , ":" , "==" , "===" , "<=" , ">=" , "!=" , "!==" , "&&" , "||" , "++" , "--" , "+" 
-    , "-" , "*" , "/" , "&" , "|" , "^" , "%" , "<<" , ">>" , ">>>" , "+=" , "-=" , "*=" , "/=" , "&=" , "|=" , "^=" , "%=" 
-    , "<<=" , ">>=" , ">>>=" , "@" 
-    ]
+sharingModeLiteral :: P String 
+sharingModeLiteral = withSharing <|> withoutSharing <|> inherithSharing
+    where  
+        withSharing     = istring "with sharing"
+        withoutSharing  = istring "without sharing"
+        inherithSharing = istring "inherit sharing"
+
+tokInt      =  TokInt       <<=: integerLiteral
+tokDouble   =  TokDouble    <<=: doubleLiteral
+tokString   =  TokString    <<=: stringLiteral
+tokLong     =  TokLong      <<=: longLiteral
+tokBool     =  TokBool      <<=: boolLiteral
+op          =  Operator     <<=: opLiteral
+tokNull     =  TokNull      <=: string "null"
+lParen      =  LParen       <=: char '('
+rParen      =  RParen       <=: char ')'
+lSquare     =  LSquare      <=: char '['
+rSquare     =  RSquare      <=: char ']'
+lBrace      =  LBrace       <=: char '{'
+rBrace      =  RBrace       <=: char '}'
+semiColon   =  SemiColon    <=: char ';'
+at          =  At           <=: char '@'
+comm        =  Comma        <=: char ','
+period      =  Period       <=: (char '.' <* notFollowedBy digit)
+
+-- javaSingleChar :: Parser Char
+-- javaSingleChar = noneOf "\\'" <|> unicodeEscape
+
+-- unicodeEscape :: Parser Char
+-- unicodeEscape = do
+--     _ <- string "\\u"
+--     cs <- count 4 anyChar
+--     if all isHexDigit cs then
+--         return ((fst . head) $ readLitChar ("\\x" ++ cs))
+--     else
+--         parserFail "Bad unicode escape"
+
+escapeChar :: P Char
+escapeChar = choice (map parseEsc escMap)
+    where 
+        parseEsc :: Tuple Char Char -> P Char
+        parseEsc (Tuple c code) = try (char '\\' *>  char c $> code)
+
+        -- escape code tables
+        escMap :: Array (Tuple Char Char)
+        escMap = Array.zip [   'a',   'b',   'f',  'n',  'r',  't',   'v', '\\', '\"', '\'' ]
+                            [ '\x7', '\x8', '\xC', '\n', '\r', '\t', '\xB', '\\', '\"', '\'' ]
 
 
-intTok         = IntegerTok  <<=: integerLiteral
-doubleTok      = DoubleTok   <<=: doubleLiteral
-longTok        = LongTok     <<=: longLiteral
-stringTok      = StringTok   <<=: stringLiteral
-boolTok        = BoolTok     <<=: boolLiteral
-opTok          = OpTok       <<=: opLiteral
-lParenTok      = OpenParen   <=: PS.char '('
-rParenTok      = CloseParen  <=: PS.char ')'
-lSquareTok     = OpenSquare  <=: PS.char '['
-rSquareTok     = CloseSquare <=: PS.char ']'
-lBraceTok      = OpenCurly   <=: PS.char '{'
-rBraceTok      = CloseCurly  <=: PS.char '}'
-semiColonTok   = SemiColon   <=: PS.char ';'
-atTok          = Op_AtSign   <=: PS.char '@'
-commTok        = Comma       <=: PS.char ','
-periodTok      = Period      <=: (PS.char '.' <* PC.notFollowedBy PT.digit)
+-- octalEscape :: Parser Char
+-- octalEscape =
+--     char '\\' *> (choice . map try)
+--        [readOctal  <$> octalDigit <* eof,
+--         readOctal2 <$> octalDigit  <*> octalDigit <* eof,
+--         readOctal3 <$> zeroToThree <*> octalDigit <*> octalDigit]
+--         where
+--             zeroToThree       = drange '0' '3'
+--             octalDigit        = drange '0' '7'
+--             readOctal  s      = chr (read ("0o" ++ [s]) :: Int)
+--             readOctal2 s t    = chr (read ("0o" ++ [s, t]) :: Int)
+--             readOctal3 s t u  = chr (read ("0o" ++ [s, t, u]) ::Int)
 
-keywordTable = HS.fromArray javaReservedNames
-operatorTable = HS.fromArray javaReservedOpNames
-isKeyword = flip HS.member keywordTable
-isOperator = flip HS.member operatorTable
+-- drange :: Char -> Char -> Parser Char
+-- drange b e = satisfy (\c -> ord b <= ord c && ord c <= ord e)
 
--- identOrKeyword :: P (L Token)
--- identOrKeyword = do
---     p <- position
---     s <- identifier
---     pure $ 
---         if isKeyword s 
---         then (L (Pos p) $ KeywordTok s) 
---         else (L (Pos p) $ IdentTok s)
+stringLiteral :: P String
+stringLiteral = do 
+    let stringCharacter = satisfy (\c -> c /= '\'' && c /= '\\') 
+    fromCharArray <$> (char '\'' *> Array.many (stringCharacter <|> escapeChar) <* char '\'')
 
-dot :: P String 
-dot = javaLexer.dot 
+-- charLiteral :: Parser Char
+-- charLiteral = char '\'' *> (try escapeSequence <|> javaSingleChar) <* char '\''
+
+javaLetter :: P Char
+javaLetter = satisfy (\c -> isAlpha c || c == '$' || c == '_')
+
+-- identifier :: P String
+-- identifier = javaLexer.identifier -- (:) <$> javaLetter <*> many (alphaNum <|> oneOf "_$")
 
 identifier :: P String
 identifier = do 
-    arrChar <- Array.cons <$> javaLetter <*> Array.many (PC.try PT.alphaNum <|> PS.oneOf ['_', '$'])
+    arrChar <- Array.cons <$> javaLetter <*> Array.many (try alphaNum <|> oneOf ['_', '$'])
     pure $ fromCharArray arrChar
 
--- parses a reserved name
-reserved :: String -> P Unit
-reserved = javaLexer.reserved    
+integerLiteral :: P Int
+integerLiteral = javaLexer.integer
+-- integerLiteral = (read <$> (choice . map try)
+--     [ hexNumeral, binaryNumeral, octalNumeral, decimalNumeral ])
+--     <* notFollowedBy (char '.')
 
- -- parses an operator
-reservedOp :: String -> P Unit
-reservedOp = javaLexer.reservedOp 
+-- decimalNumeral =  string "0" <* notFollowedBy digit
+--               <|> ((:) <$> drange '1' '9' <* underscore <*>
+--                     many (digit <* underscore))
 
--- parses surrounding parenthesis:
-parens :: forall t. P t -> P t
-parens = javaLexer.parens      
+-- octalNumeral = ("0o" ++) <$> (string "0" *> many1 octDigit)
 
-brackets :: forall t. P t -> P t
-brackets = javaLexer.brackets      
+-- binaryNumeral = bin2dec <$> (string "0b" *> many1 (oneOf "01" <* underscore))
 
--- parses a semicolon
-semi :: P String
-semi = javaLexer.semi    
+-- bin2dec = show . foldr (\c s -> s * 2 + c::Integer) 0 . reverse . map c2i
+--             where c2i c = if c == '0' then 0 else 1
 
-javaLetter :: P Char
-javaLetter = PS.satisfy (\c -> isAlpha c || c == '$' || c == '_')
+-- hexNumeral = (++) <$> string "0x" <*> many1 (hexDigit <* underscore)
+-- underscore = optional (many (char '_'))
 
- -- parses whitespace
-whiteSpace :: P Unit
-whiteSpace = javaLexer.whiteSpace 
+doubleLiteral :: P Number
+doubleLiteral = javaLexer.float 
 
--- Apex does not support binary, octal, or hex based on the link below 
--- https://salesforce.stackexchange.com/questions/151169/how-do-i-assign-values-to-properties-using-hexadecimal-notation-using-apex
--- It seem like a Encoding Util class must be used for hex convertion only
--- https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_classes_restful_encodingUtil.htm
-integerLiteral :: P Int 
-integerLiteral = javaLexer.integer 
--- integerLiteral = do 
---     x <- decimalIntegerLiteral  <* PC.notFollowedBy (PS.char '.')
---     pure $ x
-
-doubleLiteral :: P Number 
-doubleLiteral = javaLexer.float
--- doubleLiteral = unsafeCoerce <$> PC.choice $ map PC.try 
---     [ (digitsStr <> dot <> digitsStr) ]
-
-longLiteral :: P BigInt.BigInt 
+longLiteral :: P BigInt 
 longLiteral = do 
     i <- zero <|> digitsStr
     _ <- integerTypeSuffix
     maybe (fail "Could not read long integer") pure $ BigInt.fromString i 
     where 
-        zero = PS.char '0' *> pure "0"
+        zero = char '0' *> pure "0"
 
-stringLiteral :: P String
-stringLiteral = do 
-    let stringCharacter = PS.satisfy (\c -> c /= '\'' && c /= '\\') 
-    fromCharArray <$> (PS.char '\'' *> Array.many (stringCharacter <|> escapeChar) <* PS.char '\'')
+integerTypeSuffix :: P Char 
+integerTypeSuffix = char 'l' <|> char 'L'
 
-decimalIntegerLiteral :: P Int 
-decimalIntegerLiteral = do 
-    i <- decimalNumeral
-    _ <- PC.optional integerTypeSuffix
-    pure i
+-- floatLiteral = decimalFloatLiteral <|> hexFloatLiteral where
+--     decimalFloatLiteral = choice $ map try
+--      [
+--         a5 <$> digits <*> dot <*> can digits <*> can ex <*> can suffix
+--       , a4 <$> dot <*> digits <*> can ex <*> can suffix
+--       , a3 <$> digits <*> ex <*> can suffix
+--       , a3 <$> digits <*> can ex <*> suffix
+--      ]
+
+--     hexFloatLiteral = (++) <$> hexSignificand <*> binex
+--     hexSignificand = choice $ map try
+--      [
+--         (++) <$> hexNumeral <*> can dot
+--       , a6 <$> char '0' <*> oneOf "xX" <*> can hexDigits <*> dot <*> hexDigits
+--      ]
+--     binex = a3 <$> pp <*> can sign <*> many1 digit
+--     hexDigits = many1 hexDigit
+--     digits = many1 digit
+--     dot = string "."
+--     ex = (\a b c -> a : (b ++ c)) <$> oneOf "eE" <*> can sign <*> many1 digit
+--     suffix = (:[]) <$> oneOf "fFdD"
+--     sign = (:[]) <$> oneOf "+-"
+--     pp = (:[]) <$> oneOf "pP"
+--     can p = try p <|> return ""
+--     a4 a b c d = a ++ b ++ c ++ d
+--     a3 a b c = a ++ b ++ c
+--     a5 a b c d e = a ++ b ++ c ++ d ++ e
+--     a6 a b c d e = a:b:(c ++ d ++ e)
 
 boolLiteral :: P Boolean 
-boolLiteral = readBool <$> (PC.choice <<< map PS.string) ["true", "false"]
+boolLiteral = readBool <$> (choice <<< map string) ["true", "false"]
     where 
         readBool "true"  = true
         readBool _       = false
-    
+
 opLiteral :: P String
--- opLiteral = (PC.choice <<< map PS.string) javaReservedOpNames
-opLiteral = do
-    let (LanguageDef javaLang) = javaLanguage
-    ohead <- javaLang.opStart
-    obody <- Array.many $ javaLang.opLetter
-    let o = fromCharArray $ Array.cons ohead obody
-    if isOperator o 
-    then pure o
-    else fail ("Unknown operator" <> o)
-
-escapeChar :: P Char
-escapeChar = PC.choice (map parseEsc escMap)
-        where 
-
-            parseEsc :: Tuple Char Char -> P Char
-            parseEsc (Tuple c code) = PC.try (PS.char '\\' *>  PS.char c $> code)
-
-            -- escape code tables
-            escMap :: Array (Tuple Char Char)
-            escMap = Array.zip [   'a',   'b',   'f',  'n',  'r',  't',   'v', '\\', '\"', '\'' ]
-                            [ '\x7', '\x8', '\xC', '\n', '\r', '\t', '\xB', '\\', '\"', '\'' ]
-
-decimalNumeral :: P Int 
-decimalNumeral = zero <|> digits
-    where 
-        zero      = PS.char '0' *> pure 0
-
-digits :: P Int 
-digits = unsafeCoerce <$> digitsStr 
-    
+opLiteral = javaLexer.operator 
 
 digitsStr :: P String 
-digitsStr = many1 PT.digit >>= (pure <<< fromCharArray <<< toUnfoldable) 
+digitsStr = Array.some digit >>= (pure <<< fromCharArray) 
 
-integerTypeSuffix :: P Char 
-integerTypeSuffix = PS.char 'l' <|> PS.char 'L'
+mkTokenWith :: forall a. (a -> T) -> P a -> P Token
+mkTokenWith t p = do
+    pos <- position
+    m   <- p
+    pure (t m /\ pos)
 
+mkToken :: forall a. T -> P a -> P Token
+mkToken t p = do
+    pos <- position 
+    _   <- p
+    pure (t /\ pos)
 
+-- case insensitive match string 
+istring :: String -> P String 
+istring = caseInsensitiveString
+
+-- Match the lowercase or uppercase form of 'c'
+caseInsensitiveChar c = char (toLower c) <|> char (toUpper c)
+
+-- Match the string 's', accepting either lowercase or uppercase form of each character 
+caseInsensitiveString s = try (fromCharArray <$> traverse caseInsensitiveChar charList ) <?> ("\"" <> s <> "\"")
+    where 
+        charList = toCharArray s
