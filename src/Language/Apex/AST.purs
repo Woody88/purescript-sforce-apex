@@ -161,13 +161,12 @@ data Modifier = Public       | Protected    | Private   | Abstract
 
 -- type FieldModifier = Modifier
 
--- type VariableDeclaratorList = [VariableDeclarator]
+type VariableDeclaratorList = (List VariableDeclarator)
 
--- data VariableDeclarator =
---         VariableDeclarator VariableDeclID (Maybe VariableInitializer)
---         PRODUCTION
+data VariableDeclarator 
+    = VariableDeclarator VariableDeclID (Maybe VariableInitializer)
 
--- type VariableDeclID = (Ident, Dims)
+type VariableDeclID = Tuple Ident Dims
 
 -- type MethodModifier = Modifier
 
@@ -218,9 +217,9 @@ data Modifier = Public       | Protected    | Private   | Abstract
 --                       | VoidV
 --                       PRODUCTION
 
--- data VariableInitializer = ExpressionInitializer Expression
---                          | ArrayInitializer ArrayInitializer
---                          PRODUCTION
+data VariableInitializer = ExpressionInitializer Expression
+                         | ArrayInitializer ArrayInitializer
+
 
 -- -- data ConstructorDeclaration (See ClassMemberDec)
 
@@ -499,7 +498,7 @@ data ArrayAccess = NormalArrayAccess TypeName Expression
 --        | ClassTypeACEI ClassType Int ArrayInitializer
 --        PRODUCTION
 
--- type ArrayInitializer = [VariableInitializer]
+type ArrayInitializer = (List VariableInitializer)
 
 -- type ConstantExpression = Expression
 
@@ -560,7 +559,17 @@ derive instance genericTerm :: Generic Term _
 derive instance genericLHS :: Generic LHS _ 
 derive instance genericFieldAccess :: Generic FieldAccess _ 
 derive instance genericArrayAccess :: Generic ArrayAccess _ 
+derive instance genericVariableInitializer :: Generic VariableInitializer _ 
+derive instance genericVariableDeclarator :: Generic VariableDeclarator _ 
 
+
+instance showVariableDeclarator :: Show VariableDeclarator where 
+    show x = genericShow x
+
+instance showVariableInitializer :: Show VariableInitializer where 
+    show (ArrayInitializer a) = "(ArrayInitializer " <> show a <> ")"
+    show x = genericShow x
+    
 instance showArrayAccess :: Show ArrayAccess where 
     show = genericShow
 
