@@ -1,100 +1,130 @@
 module Language.Apex.Parser.Core where
 
-import Control.Applicative ((<$>))
-import Text.Parsing.Parser.String hiding (satisfy)
-import Data.Map as M
-import Data.HashSet as S
-
 import Language.Apex.AST
+import Prelude
+import Text.Parsing.Parser.String hiding (satisfy)
+
+import Control.Applicative ((<$>))
+import Control.Monad.State (gets, modify_)
+import Data.HashSet as S
+import Data.List (List)
+import Data.List as List
+import Data.List.Partial as LP
+import Data.Map as M
+import Data.Maybe (Maybe(..))
+import Data.Tuple (Tuple(..), fst)
+import Text.Parsing.Parser (ParseState(..), Parser, fail)
+import Text.Parsing.Parser.Pos (Position(..))
 
 -- -- | Type of the Java Parser
--- type JParser a = Parsec [Token] () a
+type P a = Parser (List Token) a
 
--- -- | Advance token position
--- nextPos :: SourcePos -> t -> [Token] -> SourcePos
--- nextPos _ _ ((_, pos) : _) = pos
--- nextPos pos _ [] = pos
+token nextpos showt test = do
+    input <- gets \(ParseState input _ _) -> input
+    case List.uncons input of
+      Nothing -> fail "Unexpected EOF"
+      Just {head,tail} -> do
+        case test head of 
+            Nothing -> fail $ "Unexpected token: " <> showt head
+            Just  x -> do
+                _ <- modify_ \(ParseState _ pos _) -> ParseState tail (nextpos pos head tail) true
+                
+                pure x
 
--- -- | Same as Parsec's satisfy, this is for Java token
--- satisfy :: (T -> Bool) -> JParser T
--- satisfy f = tokenPrim show nextPos (\c -> if f (fst c)
---                                           then Just (fst c)
---                                           else Nothing)
+-- javaToken' :: forall a. (Token -> Maybe a) -> P a
+-- javaToken' test =  token posT showT testT
+--     where 
+--         showT (L _ t) = show t
+--         posT  _ (L p _) _ = Newtype.unwrap p
+--         testT (L _ t) = test t
+
+
+-- | Advance token position
+nextPos :: forall t. Position -> t -> List Token -> Position
+nextPos pos tk tkl 
+    | List.null tkl = pos 
+    | Just (Tuple _ p) <- List.head tkl = p
+    | otherwise = pos 
+
+-- | Same as Parsec's satisfy, this is for Apex token
+satisfy :: (T -> Boolean) -> P T
+satisfy f = token nextPos show  
+    (\c -> if f (fst c)
+           then Just (fst c)
+           else Nothing)
 
 -- -- | Fetch next token and advance
--- getT :: JParser T
--- getT = tokenPrim show nextPos (Just . fst)
+getT :: P T
+getT = token nextPos show (Just <<< fst)
 
 -- -- | Get the string from a Token context
 -- -- | Will fail if the Token does not store a String
--- getSS :: T -> String
--- getSS (TokIdent   s) = s
--- getSS (Keyword    s) = s
--- getSS (Operator   s) = s
--- getSS s              = show s
+getSS :: T -> String
+getSS (TokIdent   s) = s
+getSS (Keyword    s) = s
+getSS (Operator   s) = s
+getSS s              = show s
 
 -- -- | Check the equality between the content of a string storing token
 -- --   and a string.
--- (===) :: T -> String -> Bool
--- t === s = getSS t == s
+isToken :: T -> String -> Boolean
+isToken t s = getSS t == s
 
--- isIdentifier (TokIdent _) = True
--- isIdentifier _ = False
+infixr 4 isToken as === 
 
--- isKeyword (Keyword _) = True
--- isKeyword _ = False
+isIdentifier (TokIdent _) = true
+isIdentifier _ = false
 
--- isPeriod Period = True
--- isPeriod _ = False
+isKeyword (Keyword _) = true
+isKeyword _ = false
 
--- isOperator (Operator _) = True
--- isOperator  _ = False
+isPeriod Period = true
+isPeriod _ = false
 
--- isComma Comma = True
--- isComma _ = False
+isOperator (Operator _) = true
+isOperator  _ = false
 
--- isLSquare LSquare = True
--- isLSquare _ = False
+isComma Comma = true
+isComma _ = false
 
--- isRSquare RSquare = True
--- isRSquare _ = False
+isLSquare LSquare = true
+isLSquare _ = false
 
--- isLParen LParen = True
--- isLParen _ = False
+isRSquare RSquare = true
+isRSquare _ = false
 
--- isRParen RParen = True
--- isRParen _ = False
+isLParen LParen = true
+isLParen _ = false
 
--- isSemiColon SemiColon = True
--- isSemiColon _ = False
+isRParen RParen = true
+isRParen _ = false
 
--- isDColon DColon = True
--- isDColon _ = False
+isSemiColon SemiColon = true
+isSemiColon _ = false
 
--- isLBrace LBrace = True
--- isLBrace _ = False
+isLBrace LBrace = true
+isLBrace _ = false
 
--- isRBrace RBrace = True
--- isRBrace _ = False
+isRBrace RBrace = true
+isRBrace _ = false
 
--- operator s      = satisfy (\x -> isOperator x && x === s)
--- keyword kwd     = satisfy (\x -> isKeyword x  && x === kwd)
+operator s      = satisfy (\x -> isOperator x && x === s)
+keyword kwd     = satisfy (\x -> isKeyword x && x === kwd)
 
--- lessThan        = operator "<"
--- greaterThan     = operator ">"
--- star            = operator "*"
--- multOp          = star
+lessThan        = operator "<"
+greaterThan     = operator ">"
+star            = operator "*"
+multOp          = star
 
--- comma           = satisfy isComma
--- lSquare         = satisfy isLSquare
--- rSquare         = satisfy isRSquare
--- lParen          = satisfy isLParen
--- rParen          = satisfy isRParen
--- lBrace          = satisfy isLBrace
--- rBrace          = satisfy isRBrace
--- semiColon       = satisfy isSemiColon
--- dot             = satisfy isPeriod
--- dColon          = satisfy isDColon
+comma           = satisfy isComma
+lSquare         = satisfy isLSquare
+rSquare         = satisfy isRSquare
+lParen          = satisfy isLParen
+rParen          = satisfy isRParen
+lBrace          = satisfy isLBrace
+rBrace          = satisfy isRBrace
+semiColon       = satisfy isSemiColon
+dot             = satisfy isPeriod
 
 -- fromModifierTable :: S.HashSet String -> JParser Modifier
 -- fromModifierTable wl = 
