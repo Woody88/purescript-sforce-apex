@@ -9,8 +9,8 @@ module Language.Apex.Parser.Internal where
 -- import Text.Parsec.Prim
 -- import Text.Parsec.Expr
 
--- import Language.Java.AST
--- import Language.Java.Parser.Core
+import Language.Apex.AST
+import Language.Apex.Parser.Core
 
 -- javaProgram :: JParser CompilationUnit
 -- javaProgram = compilationUnit
@@ -473,8 +473,8 @@ module Language.Apex.Parser.Internal where
 --                           <*> optionMaybe extendsInterfaces
 --                           <*> interfaceBody
 
--- interfaceModifier :: JParser InterfaceModifier
--- interfaceModifier = fromModifierTable interfaceModifierTable
+interfaceModifier :: P InterfaceModifier
+interfaceModifier = fromModifierTable interfaceModifierTable
 
 -- extendsInterfaces :: JParser ExtendsInterfaces
 -- extendsInterfaces = ExtendsInterfaces

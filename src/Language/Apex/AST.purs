@@ -263,9 +263,9 @@ data Modifier = Public       | Protected    | Private   | Abstract
 -- data InterfaceDeclaration = NormalInterface [InterfaceModifier] Ident
 --                             (Maybe TypeParams) (Maybe ExtendsInterfaces)
 --                              InterfaceBody
---                           PRODUCTION
 
--- type InterfaceModifier = Modifier
+
+type InterfaceModifier = Modifier
 
 -- data ExtendsInterfaces = ExtendsInterfaces InterfaceTypeList
 --                        PRODUCTION
@@ -387,38 +387,39 @@ data Modifier = Public       | Protected    | Private   | Abstract
 -- data Resource = Resource [VariableModifier] UnannType VariableDeclID Expression
 --               PRODUCTION
 
--- -- | 15. Expressions
--- data Expression = LambdaExpression LambdaParameters LambdaBody
---                 | Expression AssignmentExpression
---                 PRODUCTION
+-- | 15. Expressions
+data Expression 
+    = Expression AssignmentExpression
 
--- data AssignmentExpression = Term Term
---                           | Assignment LHS T Expression
---                           PRODUCTION
+data AssignmentExpression 
+    = Term Term
+    | Assignment LHS T Expression
+                          
 
--- -- | Literals [literal]
--- data Literal = IntegerLiteral Integer
---              | FloatingPointLiteral String
---              | BooleanLiteral Bool
---              | CharacterLiteral Char
---              | StringLiteral String
---              | NullLiteral
---              PRODUCTION
+-- | Literals [literal]
+data Literal = IntegerLiteral Int
+             | DoubleLiteral Number
+             | BooleanLiteral Boolean
+             | LongLiteral BigInt
+             | StringLiteral String
+             | NullLiteral
 
--- -- | Primary [primary]
--- data Primary = Literal Literal
---                 -- | foo.class
---                 | TypeNameDotClass TypeName
+
+-- | Primary [primary]
+data Primary 
+    = Literal Literal
+    -- | foo.class
+    | TypeNameDotClass TypeName
 --                 -- | foo[][].class
 --                 | TypeNameArrDotClass TypeName Int
 --                 -- | void.class
 --                 | VoidDotClass
---                 -- | this
---                 | This
+    -- | this
+    | This
 --                 -- | foo.this
 --                 | TypeNameDotThis TypeName
---                 -- | (Expression)
---                 | Expr Expression
+    -- | (Expression)
+    | Expr Expression
 --                 -- | Instant class creation
 --                 | ClassInstanceCreationExpression ClassInstanceCreation
 --                 -- | Field access
@@ -504,20 +505,11 @@ data Modifier = Public       | Protected    | Private   | Abstract
 
 -- type ConstantExpression = Expression
 
--- data LambdaParameters = LIdent Ident
---                       | LFormalParameterList (Maybe FormalParameterList)
---                       | LInferredFormalParameterList InferredFormalParameterList
---                       PRODUCTION
-
 -- type InferredFormalParameterList = [Ident]
 
--- data LambdaBody = Lambda Expression
---                 | LambdaBlock Block
---                 PRODUCTION
+data LHS = LHSExpr  Primary
+         | LHSIdent Ident
 
--- data LHS = LHSExpr  Primary
---          | LHSIdent Ident
---          PRODUCTION
 
 -- data PostfixExpr = PrimPostfixExpr Primary
 --                  | NamePostfixExpr TypeName
@@ -546,17 +538,68 @@ data Modifier = Public       | Protected    | Private   | Abstract
 -- data CondExpr = CondExpr Expression Expression Expression
 --               PRODUCTION
 
--- data Term = PrimExpr Primary
---           | NameExpr TypeName
---           | PrefixExpr T Term
---           | PostfixExpr T Term
---           | InstanceOfExpr RefType Term
---           | BinaryExpr T Term Term
---           | ConditionalExpr Expression Term Term
---           PRODUCTION
+data Term = PrimExpr Primary
+          | NameExpr TypeName
+          | PrefixExpr T Term
+          | PostfixExpr T Term
+          | InstanceOfExpr RefType Term
+          | BinaryExpr T Term Term
+          | ConditionalExpr Expression Term Term
 
 derive instance genericT :: Generic T _ 
 derive instance genericModifier :: Generic Modifier _ 
+derive instance genericLiteral :: Generic Literal _ 
+derive instance genericIdent :: Generic Ident _ 
+derive instance genericPrimType :: Generic PrimType _ 
+derive instance genericClassType :: Generic ClassType _ 
+derive instance genericTypeArg :: Generic TypeArg _ 
+derive instance genericRefType :: Generic RefType _ 
+derive instance genericArrayType :: Generic ArrayType _ 
+derive instance genericPrimary :: Generic Primary _ 
+derive instance genericExpression :: Generic Expression _ 
+derive instance genericAssignmentExpression :: Generic AssignmentExpression _ 
+derive instance genericTerm :: Generic Term _ 
+derive instance genericLHS :: Generic LHS _ 
+
+instance showLHS :: Show LHS where 
+    show = genericShow 
+
+instance showTerm :: Show Term where 
+    show (ConditionalExpr e t t2) = "(ConditionalExpr " <> show e <> show t <> show t2 <> ")"
+    show x = genericShow x 
+
+instance showAssignmentExpression :: Show AssignmentExpression where 
+    show (Term t) = "(Term " <> show t <> ")" 
+    show x = genericShow x
+
+instance showExpression :: Show Expression where 
+    show = genericShow 
+
+instance showPrimary :: Show Primary where 
+    show = genericShow 
+
+instance showArrayType :: Show ArrayType where 
+    show (ClassOrInterfaceArrayT ct d) = "(ClassOrInterfaceArrayT " <> show ct <> show d <> ")" 
+    show x = genericShow x
+
+instance showRefType :: Show RefType where 
+    show (ArrayType a) = "(ArrayType " <> show a <> ")"
+    show x = genericShow x
+
+instance showTypeArg :: Show TypeArg where 
+    show = genericShow
+
+instance showClassType :: Show ClassType where 
+    show = genericShow
+
+instance showPrimType :: Show PrimType where 
+    show = genericShow
+
+instance showIdent :: Show Ident where 
+    show = genericShow
+
+instance showLiteral :: Show Literal where 
+    show = genericShow
 
 instance showModifier :: Show Modifier where 
     show = genericShow
