@@ -7,19 +7,22 @@ import Text.Parsing.Parser.String hiding (satisfy)
 import Control.Applicative ((<$>))
 import Control.Monad.State (gets, modify_)
 import Data.HashSet as S
-import Data.List (List)
+import Data.List (List, foldl)
 import Data.List as List
 import Data.List.Partial as LP
 import Data.Map as M
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Tuple (Tuple(..), fst)
 import Data.Tuple.Nested ((/\))
 import Text.Parsing.Parser (ParseState(..), Parser, fail)
+import Text.Parsing.Parser.Combinators (option)
 import Text.Parsing.Parser.Pos (Position(..))
 
 -- -- | Type of the Java Parser
 type P a = Parser (List Token) a
 
+infixr 6 pipeParseR as |>>
+    
 token nextpos showt test = do
     input <- gets \(ParseState input _ _) -> input
     case List.uncons input of
@@ -32,12 +35,11 @@ token nextpos showt test = do
                 
                 pure x
 
--- javaToken' :: forall a. (Token -> Maybe a) -> P a
--- javaToken' test =  token posT showT testT
---     where 
---         showT (L _ t) = show t
---         posT  _ (L p _) _ = Newtype.unwrap p
---         testT (L _ t) = test t
+pipeParseR :: forall a. P a -> P (a -> a) -> P a
+pipeParseR left suffix = do
+    l <- left
+    s <- option mempty (List.someRec suffix)
+    pure $ foldl (\x y -> y x) l s
 
 
 -- | Advance token position
@@ -127,19 +129,14 @@ rBrace          = satisfy isRBrace
 semiColon       = satisfy isSemiColon
 dot             = satisfy isPeriod
 
--- fromModifierTable :: S.HashSet String -> JParser Modifier
--- fromModifierTable wl = 
---         (\k -> modifierTable M.! getSS k) 
---         <$> satisfy (isModifierOf wl)
+fromModifierTable :: S.HashSet String -> P Modifier
+fromModifierTable wl = do 
+    m <- satisfy (isModifierOf wl)
+    let md = M.lookup (getSS m) modifierTable
+    maybe (fail "expected a modifier") pure md 
 
--- isModifierOf whiteList kwd = isKeyword kwd &&
---                     (getSS kwd `S.member` whiteList)
-
--- (|>>) :: JParser a -> JParser (a -> a) -> JParser a
--- (|>>) left suffix = do
---     l <- left
---     s <- option [] (many1 suffix)
---     return $ foldl (\x y -> y x) l s
+isModifierOf whiteList kwd = 
+    isKeyword kwd && (getSS kwd `S.member` whiteList)
 
 -- | Stores valid keywords for class modifier.
 modifierTable :: M.Map String Modifier
@@ -148,40 +145,37 @@ modifierTable = M.fromFoldable [
     ("static" /\ Static), ("final" /\ Final), ("virtual" /\ Virtual), ("override" /\ Override),
     ("abstract" /\ Abstract), ("extends" /\ Extends), ("transient" /\ Transient),
     ("with sharing" /\ WithShare), ("without sharing" /\ WithoutShare), ("interface" /\ Interface),
-    ("inherit sharing" /\ InheritShare)]
+    ("inherit sharing" /\ InheritShare), ("global" /\ Global)]
 
--- -- | Stores valid keywords for class modifier.
--- classModifierTable :: S.HashSet String
--- classModifierTable = S.fromList
---     ["public", "protected", "private", "static", "strictfp", "abstract",
---      "final"]
+-- | Stores valid keywords for class modifier.
+classModifierTable :: S.HashSet String
+classModifierTable = S.fromFoldable
+    ["public", "protected", "private", "static", "virtual", "abstract", "global",
+     "final", "abstract", "with sharing", "without sharing", "inherit sharing"]
 
--- -- | Stores valid keywords for interface modifier.
--- interfaceModifierTable :: S.HashSet String
--- interfaceModifierTable = S.fromList
---     ["public", "protected", "private" , "static", "strictfp" , "abstract"]
+-- | Stores valid keywords for interface modifier.
+interfaceModifierTable :: S.HashSet String
+interfaceModifierTable = S.fromFoldable ["public"]
 
--- -- | Stores valid keywords for interface method modifier.
--- interfaceMethodModifierTable :: S.HashSet String
--- interfaceMethodModifierTable = S.fromList
---     ["public", "static", "strictfp" , "abstract", "default"]
+-- | Stores valid keywords for interface method modifier.
+interfaceMethodModifierTable :: S.HashSet String
+interfaceMethodModifierTable = interfaceModifierTable
 
--- -- | Stores valid keywords for field modifier.
--- fieldModifierTable :: S.HashSet String
--- fieldModifierTable = S.fromList
---     ["public", "protected", "private", "static", "final", "transient",
---      "volatile"]
+-- | Stores valid keywords for field modifier.
+fieldModifierTable :: S.HashSet String
+fieldModifierTable = S.fromFoldable
+    ["public", "protected", "private", "static", "final", "transient", "global"]
 
--- -- | Stores valid keywords for method modifier.
--- methodModifierTable :: S.HashSet String
--- methodModifierTable = S.fromList
---     ["public", "protected", "private", "static", "final", "transient",
---      "volatile", "synchronized", "native", "strictfp"]
+    -- | Stores valid keywords for method modifier.
+methodModifierTable :: S.HashSet String
+methodModifierTable = S.fromFoldable
+    ["public", "protected", "private", "static", "final", "transient", "global", 
+     "override"]
 
--- -- | Stores valid keywords for constructor modifier.
--- constructorModifierTable :: S.HashSet String
--- constructorModifierTable = S.fromList ["public", "protected", "private"]
+-- | Stores valid keywords for constructor modifier. 
+constructorModifierTable :: S.HashSet String
+constructorModifierTable = S.fromFoldable ["public", "protected", "private", "global"]
 
--- -- | Stores valid keywords for constants modifier.
--- constantModifierTable :: S.HashSet String
--- constantModifierTable = S.fromList ["public", "static", "final"]
+-- | Stores valid keywords for constants modifier.
+constantModifierTable :: S.HashSet String
+constantModifierTable = S.fromFoldable ["public", "global", "static", "final"]

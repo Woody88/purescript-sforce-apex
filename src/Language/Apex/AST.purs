@@ -135,7 +135,7 @@ data TypeArg = ActualType RefType
 data Modifier = Public       | Protected    | Private   | Abstract
               | Static       | Final        | Virtual   | Extends
               | Transient    | Interface    | WithShare | WithoutShare 
-              | InheritShare | Override
+              | InheritShare | Override     | Global
 
 -- type ClassModifier = Modifier
 
