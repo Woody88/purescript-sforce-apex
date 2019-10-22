@@ -13,6 +13,7 @@ You can edit this file as you like.
     , "newtype"
     , "node-buffer"
     , "node-fs-aff"
+    , "node-process"
     , "parsing"
     , "psci-support"
     , "spec"
