@@ -15,6 +15,7 @@ You can edit this file as you like.
     , "node-fs-aff"
     , "parsing"
     , "psci-support"
+    , "spec"
     , "unicode"
     , "unordered-collections"
     ]
