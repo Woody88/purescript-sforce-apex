@@ -83,6 +83,12 @@ data Exp
     | FieldAccess FieldAccess
     -- | Method reference
     | MethodRef Name Ident
+    -- | The conditional operator @? :@ uses the boolean value of one expression to decide which of two other
+    --   expressions should be evaluated.
+    | Cond Exp Exp Exp
+    -- | Testing whether the result of an expression is an instance of some reference type.
+    | InstanceOf Exp RefType
+
     
 -- | The left-hand side of an assignment expression. This operand may be a named variable, such as a local
 --   variable or a field of the current object or class, or it may be a computed variable, as can result from

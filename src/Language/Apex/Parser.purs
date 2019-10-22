@@ -301,7 +301,10 @@ arrayInit = fix $ \_ -> braces $ do
 ------------ Expression ---------------
 -- more to be added
 expression :: P Exp
-expression = fix $ \_ -> infixExp 
+expression = fix $ \_ -> assignExp 
+
+assignExp :: P Exp
+assignExp = fix $ \_ -> PC.try methodRef <|> PC.try assignment <|> condExp
 
 stmtExp :: P Exp
 stmtExp = fix $ \_ -> 
@@ -462,17 +465,61 @@ arrayCreation = do
              pure $ \t -> ArrayCreate t des (List.length ds))
     pure $ f tp
 
+condExp :: P Exp
+condExp = fix $ \_ -> do
+    ie <- infixExp
+    ces <- list condExpSuffix
+    pure $ foldl (\a s -> s a) ie ces
+
+condExpSuffix :: P (Exp -> Exp)
+condExpSuffix = fix $ \_ ->  do
+    tok Op_Query
+    th <- expression
+    _ <- colon
+    el <- condExp
+    pure $ \ce -> Cond ce th el
+
 infixExp :: P Exp 
-infixExp = fix $ \_ -> unaryExp 
+infixExp = fix $ \_ -> do 
+    ue <- unaryExp 
+    ies <- list infixExpSuffix
+    pure $ foldl (\a s -> s a) ue ies
+
+infixExpSuffix :: P (Exp -> Exp)
+infixExpSuffix = 
+    (do
+      op <- infixCombineOp
+      ie2 <- infixExp
+      pure $ \ie1 -> BinOp ie1 op ie2) <|>
+    (do op <- infixOp
+        e2 <- unaryExp
+        pure $ \e1 -> BinOp e1 op e2) <|>
+    (do tok KW_Instanceof
+        t  <- refType
+        pure $ \e1 -> InstanceOf e1 t)
 
 unaryExp :: P Exp 
-unaryExp = fix $ \_ -> postfixExp 
+unaryExp = fix $ \_ -> 
+    -- PC.try preIncDec <|>
+    -- PC.try (do
+    --     op <- prefixOp
+    --     ue <- unaryExp
+    --     pure $ op ue) <|>
+    -- PC.try (do
+    --     t <- parens type_
+    --     e <- unaryExp
+    --     pure $ Cast t e) <|>
+    postfixExp
 
 postfixExp :: P Exp 
-postfixExp = fix $ \_ -> postfixExpNES
+postfixExp = fix $ \_ -> do
+    pe <- postfixExpNES
+    ops <- list postfixOp
+    pure $ foldl (\a s -> s a) pe ops
+
 
 postfixExpNES :: P Exp 
-postfixExpNES = fix $ \_ -> primary
+postfixExpNES = fix $ \_ -> PC.try primary <|> ExpName <$> name
 
 fieldAccessNPS :: P FieldAccess
 fieldAccessNPS =
@@ -511,7 +558,7 @@ instanceCreationSuffix = do
     pure $ \p -> QualInstanceCreation p tas i as mcb
 
 stmt :: P Stmt
-stmt = ifStmt <|> whileStmt <|> forStmt <|> labeledStmt <|> stmtNoTrail
+stmt = forStmt <|> labeledStmt <|> stmtNoTrail
   where
     ifStmt = do
         tok KW_If

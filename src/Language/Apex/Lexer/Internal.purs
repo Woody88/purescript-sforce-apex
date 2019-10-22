@@ -91,6 +91,26 @@ instance readTokenT :: ReadToken Token where
         PC.try (KW_Try                 <=: str "try") <|> 
         PC.try (KW_Void                <=: str "void") <|> 
         PC.try (KW_While               <=: str "while") <|> 
+        PC.try (Op_Equals              <=: PS.string "==")    <|>
+        PC.try (Op_LThanE              <=: PS.string "<=")    <|>
+        PC.try (Op_GThanE              <=: PS.string ">=")    <|>
+        PC.try (Op_BangE               <=: PS.string "!=")    <|>
+        PC.try (Op_AAnd                <=: PS.string "&&")    <|>
+        PC.try (Op_OOr                 <=: PS.string "||")    <|>
+        PC.try (Op_PPlus               <=: PS.string "++")    <|>
+        PC.try (Op_MMinus              <=: PS.string "--")    <|>
+        PC.try (Op_LShift              <=: PS.string "<<")    <|>
+        PC.try (Op_PlusE               <=: PS.string "+=")    <|>
+        PC.try (Op_MinusE              <=: PS.string "-=")    <|>
+        PC.try (Op_StarE               <=: PS.string "*=")    <|>
+        PC.try (Op_SlashE              <=: PS.string "/=")    <|>
+        PC.try (Op_AndE                <=: PS.string "&=")    <|>
+        PC.try (Op_OrE                 <=: PS.string "|=")    <|>
+        PC.try (Op_CaretE              <=: PS.string "^=")    <|>
+        PC.try (Op_PercentE            <=: PS.string "%=")    <|>
+        PC.try (Op_LShiftE             <=: PS.string "<<=")   <|>
+        PC.try (Op_RShiftE             <=: PS.string ">>=")   <|>
+        PC.try (Op_RRShiftE            <=: PS.string ">>>=")  <|>
         PC.try (OpenParen              <=: PS.char '(')     <|>
         PC.try (CloseParen             <=: PS.char ')')     <|>
         PC.try (OpenSquare             <=: PS.char '[')     <|>
@@ -116,26 +136,6 @@ instance readTokenT :: ReadToken Token where
         PC.try (Op_Tilde               <=: PS.char '~')     <|>
         PC.try (Op_Query               <=: PS.char '?')     <|>
         PC.try (Op_Colon               <=: PS.char ':')     <|>
-        PC.try (Op_Equals              <=: PS.string "==")    <|>
-        PC.try (Op_LThanE              <=: PS.string "<=")    <|>
-        PC.try (Op_GThanE              <=: PS.string ">=")    <|>
-        PC.try (Op_BangE               <=: PS.string "!=")    <|>
-        PC.try (Op_AAnd                <=: PS.string "&&")    <|>
-        PC.try (Op_OOr                 <=: PS.string "||")    <|>
-        PC.try (Op_PPlus               <=: PS.string "++")    <|>
-        PC.try (Op_MMinus              <=: PS.string "--")    <|>
-        PC.try (Op_LShift              <=: PS.string "<<")    <|>
-        PC.try (Op_PlusE               <=: PS.string "+=")    <|>
-        PC.try (Op_MinusE              <=: PS.string "-=")    <|>
-        PC.try (Op_StarE               <=: PS.string "*=")    <|>
-        PC.try (Op_SlashE              <=: PS.string "/=")    <|>
-        PC.try (Op_AndE                <=: PS.string "&=")    <|>
-        PC.try (Op_OrE                 <=: PS.string "|=")    <|>
-        PC.try (Op_CaretE              <=: PS.string "^=")    <|>
-        PC.try (Op_PercentE            <=: PS.string "%=")    <|>
-        PC.try (Op_LShiftE             <=: PS.string "<<=")   <|>
-        PC.try (Op_RShiftE             <=: PS.string ">>=")   <|>
-        PC.try (Op_RRShiftE            <=: PS.string ">>>=")  <|>
         identTok
         where 
             period = (PS.char '.' <* PC.notFollowedBy PT.digit)
