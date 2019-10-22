@@ -19,7 +19,7 @@ data Token  =
     -- Keywords
     KW_Abstract
     | KW_Assert | KW_Boolean | KW_Break | KW_Blob | KW_Case | KW_Catch | KW_Char | KW_Class | KW_Const | KW_When
-    | KW_Continue | KW_Default | KW_Do | KW_Double | KW_Else | KW_Enum | KW_Extends | KW_Final | KW_Finally | KW_Decimal 
+    | KW_Continue | KW_WhenElse | KW_Do | KW_Double | KW_Else | KW_Enum | KW_Extends | KW_Final | KW_Finally | KW_Decimal 
     | KW_For | KW_If | KW_Implements | KW_Import | KW_Instanceof | KW_Integer | KW_Interface | KW_Long 
     | KW_New | KW_Private | KW_Protected | KW_Public | KW_Return | KW_Short | KW_Static | KW_Super 
     | KW_Switch | KW_This | KW_Throw | KW_Throws | KW_Transient | KW_Try | KW_Void | KW_While 

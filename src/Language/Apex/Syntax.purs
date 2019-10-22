@@ -164,13 +164,13 @@ data Catch = Catch FormalParam Block
 
 -- | A block of code labelled with a @case@ or @default@ within a @switch@ statement.
 data SwitchBlock
-    = SwitchBlock SwitchLabel (List BlockStmt)
+    = SwitchBlock SwitchLabel Block
 
 -- | A label within a @switch@ statement.
 data SwitchLabel
     -- | The expression contained in the @case@ must be a 'Lit' or an @enum@ constant.
     = SwitchCase Exp
-    | Default
+    | WhenElse
 
 -----------------------------------------------------------------------
 -- Statements

@@ -653,10 +653,10 @@ stmtNoTrail = fix $ \_ ->
         pure $ Assert e me2) <|>
     -- switch stmts
 
-    -- (do tok KW_Switch
-    --     e  <- parens expression
-    --     sb <- switchBlock
-    --     pure $ Switch e sb) <|>
+    (do tok KW_Switch
+        e  <- PC.try (parens expression) <|> expression
+        sb <- switchBlock
+        pure $ Switch e sb) <|>
 
     -- do-while loops
     (endSemi $ do
@@ -712,19 +712,18 @@ forUp = fix $ \_ -> seplist1 stmtExp comma
 -- Switches
 
 switchBlock :: P (List SwitchBlock)
-switchBlock = braces $ list switchStmt
+switchBlock = fix $ \_ -> braces $ list switchStmt
 
 switchStmt :: P SwitchBlock
-switchStmt = do
+switchStmt = fix $ \_ -> do
     lbl <- switchLabel
-    bss <- list blockStmt
-    pure $ SwitchBlock lbl bss
+    bl <- block 
+    pure $ SwitchBlock lbl bl
 
 switchLabel :: P SwitchLabel
-switchLabel = (tok KW_Default *> colon *> pure Default) <|>
-    (do tok KW_Case
+switchLabel = fix $ \_ -> PC.try (tok KW_When *> tok KW_Else *> pure WhenElse) <|>
+    (do tok KW_When
         e <- expression
-        colon
         pure $ SwitchCase e)
 
 catch :: P Catch

@@ -62,7 +62,7 @@ instance readTokenT :: ReadToken Token where
         PC.try (KW_Class               <=: str "class") <|> 
         PC.try (KW_Const               <=: str "const") <|> 
         PC.try (KW_Continue            <=: str "continue") <|> 
-        PC.try (KW_Default             <=: str "default") <|> 
+        PC.try (KW_WhenElse            <=: str "when else") <|> 
         PC.try (KW_Do                  <=: str "do") <|> 
         PC.try (KW_Double              <=: str "double") <|> 
         PC.try (KW_Else                <=: str "else") <|> 
@@ -85,7 +85,7 @@ instance readTokenT :: ReadToken Token where
         PC.try (KW_Return              <=: str "return") <|> 
         PC.try (KW_Static              <=: str "static") <|> 
         PC.try (KW_Super               <=: str "super") <|> 
-        PC.try (KW_Switch              <=: str "switch") <|> 
+        PC.try (KW_Switch              <=: str "switch on") <|> 
         PC.try (KW_This                <=: str "this") <|> 
         PC.try (KW_Transient           <=: str "transient") <|> 
         PC.try (KW_Try                 <=: str "try") <|> 
@@ -165,9 +165,9 @@ javaLanguage = do
     
 javaReservedNames = 
     [ "abstract" , "assert" , "boolean" , "break" , "blob" , "byte" , "case" , "catch" , "char" , "class" , "const" 
-    , "continue" , "date" , "dfatetime" , "default" , "decimal" , "do" , "double" , "else" , "enum" , "extends" , "final" 
+    , "continue" , "date" , "dfatetime" , "decimal" , "do" , "double" , "else" , "enum" , "extends" , "final" 
     , "finally" , "for" , "if" , "id" , "integer" , "implements" , "instanceof" , "interface" , "long" , "new" 
-    , "object" , "private" , "protected" , "public" , "return" , "static" , "super" , "switch" , "string" , "time" , "this" 
+    , "object" , "private" , "protected" , "public" , "return" , "static" , "super" , "switch on" , "string" , "time" , "this" 
     , "throw" , "throws" , "transient" , "try" , "void" , "while", "when", "null"
     ]
 
