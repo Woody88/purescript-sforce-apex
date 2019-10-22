@@ -1,29 +1,26 @@
 module Language.Apex.Parser where 
 
 
-import Data.Either
-import Language.Apex.Lexer
-import Language.Apex.Syntax
-import Language.Apex.Syntax.Types
+
 import Prelude
-import Text.Parsing.Parser.Pos
+
 import Control.Alt ((<|>))
-import Control.Apply ((*>))
 import Control.Lazy (fix)
 import Control.Monad.State (gets, modify_)
+import Data.Either (Either)
 import Data.Foldable (foldl)
 import Data.List (List, (:))
 import Data.List as List
 import Data.Maybe (Maybe(..), isJust, fromMaybe, maybe)
-import Data.Newtype (class Newtype)
 import Data.Newtype as Newtype
 import Data.Tuple (Tuple(..))
+import Language.Apex.Lexer (lexJava)
+import Language.Apex.Syntax
 import Language.Apex.Lexer.Types (L(..), Token(..))
-import Text.Parsing.Parser (ParseState(..), Parser, ParseError, position, runParser, fail)
+import Language.Apex.Syntax.Types (ClassType(..), Ident(..), Literal(..), Name(..), PrimType(..), RefType(..), Type(..), TypeArgument(..), TypeParam(..))
+import Text.Parsing.Parser (ParseState(..), Parser, ParseError, runParser, fail)
 import Text.Parsing.Parser.Combinators ((<?>))
 import Text.Parsing.Parser.Combinators as PC
-import Text.Parsing.Parser.String as PS
-import Text.Parsing.Parser.Token as PT
 
 type P = Parser (List (L Token))
 
@@ -73,7 +70,7 @@ methodDecl = do
 
 methodBody :: P MethodBody
 methodBody = MethodBody <$>
-    (const Nothing <$> semiColon <|> Just <$> (fix $ \_ -> block))
+    (const Nothing <$> semiColon <|> Just <$> (fix $ \_ -> block)) <?> "unexpected method body"
 
 -- Formal parameters
 
@@ -94,12 +91,12 @@ typeDecl = Just <$> classOrInterfaceDecl <|> const Nothing <$> semiColon
 
 classOrInterfaceDecl :: P TypeDecl
 classOrInterfaceDecl = do
-    ms <- list (fix $ \_ -> modifier)
+    mdl <- list (fix $ \_ -> modifier)
     de <- (do cd <- classDecl
               pure $ \ms -> ClassTypeDecl (cd ms)) <|>
           (do id <- interfaceDecl
               pure $ \ms -> InterfaceTypeDecl (id ms))
-    pure $ de ms
+    pure $ de mdl
 
 classDecl :: P (Mod ClassDecl)
 classDecl = fix $ \_ -> normalClassDecl <|> enumClassDecl
@@ -158,6 +155,7 @@ classBodyStatement =
         ms  <- list (fix $ \_ -> modifier)
         dec <- memberDecl
         pure $ Just $ MemberDecl (dec ms))
+    <?> "unexpected class body statement"
 
 memberDecl :: P (Mod MemberDecl)
 memberDecl = fix $ \_ -> 
@@ -306,12 +304,14 @@ expression :: P Exp
 expression = fix $ \_ -> infixExp 
 
 stmtExp :: P Exp
-stmtExp = PC.try preIncDec
+stmtExp = fix $ \_ -> 
+    PC.try preIncDec
     <|> PC.try postIncDec
     <|> PC.try assignment
     <|> PC.try methodInvocationExp
     <|> PC.try methodRef
     <|> instanceCreation
+    <?> "unexpected statement expression"
 
 preIncDec :: P Exp
 preIncDec = do
@@ -320,22 +320,24 @@ preIncDec = do
     pure $ op e
 
 postIncDec :: P Exp
-postIncDec = do
+postIncDec = fix $ \_ -> do
     e <- postfixExpNES
     ops <- list1 postfixOp
     pure $ foldl (\a s -> s a) e ops
 
 assignment :: P Exp
-assignment = do
+assignment = fix $ \_ ->  do
     lh <- lhs
     op <- assignOp
     e  <- expression
     pure $ Assign lh op e
 
 lhs :: P Lhs
-lhs = PC.try (FieldLhs <$> fieldAccess)
+lhs = fix $ \_ -> 
+    PC.try (FieldLhs <$> fieldAccess)
     <|> PC.try (ArrayLhs <$> arrayAccess)
     <|> NameLhs <$> name
+    <?> "unexpected left hand side"
 
 methodInvocationSuffix :: P (Exp -> MethodInvocation)
 methodInvocationSuffix = do
@@ -352,7 +354,7 @@ methodInvocationNPS =
         i   <- ident
         as  <- args
         pure $ SuperMethodCall rts i as) <|>
-    (do n <- name
+    (do nm <- name
         f <- (do 
                 as <- args
                 pure $ \n -> MethodCall n as) <|>
@@ -363,10 +365,10 @@ methodInvocationNPS =
                 as  <- args
                 let mc = maybe TypeMethodCall (const ClassMethodCall) msp
                 pure $ \n -> mc n rts i as)
-        pure $ f n)
+        pure $ f nm)
 
 methodInvocationExp :: P Exp
-methodInvocationExp = 
+methodInvocationExp = fix $ \_ -> 
     PC.try 
     (do
         p <- primaryNPS
@@ -375,7 +377,7 @@ methodInvocationExp =
         case mip of
             MethodInv _ -> pure mip
             _ -> fail "") <|>
-     (MethodInv <$> methodInvocationNPS)
+     (MethodInv <$> methodInvocationNPS) <?> "unexpected method invocation expression"
 
 instanceCreationNPS :: P Exp
 instanceCreationNPS = do 
@@ -387,7 +389,7 @@ instanceCreationNPS = do
     pure $ InstanceCreation tas ct as mcb
 
 instanceCreation :: P Exp
-instanceCreation = 
+instanceCreation = fix $ \_ -> 
     PC.try instanceCreationNPS <|> 
     (do
         p <- primaryNPS
@@ -395,7 +397,7 @@ instanceCreation =
         let icp = foldl (\a s -> s a) p ss
         case icp of
             (QualInstanceCreation _ _ _ _ _) -> pure icp
-            _ -> fail "")
+            _ -> fail "unexpected instance creation case")
 
 primary :: P Exp 
 primary = fix $ \_ -> primaryNPS |>> primarySuffix
@@ -449,7 +451,7 @@ nonArrayType = PrimType <$> primType <|> RefType <$> ClassRefType <$> classType
 arrayCreation :: P Exp
 arrayCreation = do
     tok KW_New
-    t <- nonArrayType
+    tp <- nonArrayType
     f <- (PC.try $ do
              ds <- list1 $ brackets empty
              ai <- arrayInit
@@ -458,7 +460,7 @@ arrayCreation = do
              des <- list1 $ PC.try $ brackets expression
              ds  <- list  $ brackets empty
              pure $ \t -> ArrayCreate t des (List.length ds))
-    pure $ f t
+    pure $ f tp
 
 infixExp :: P Exp 
 infixExp = fix $ \_ -> unaryExp 
@@ -489,7 +491,7 @@ fieldAccessSuffix = do
     pure $ \p -> PrimaryFieldAccess p i
 
 fieldAccess :: P FieldAccess
-fieldAccess = 
+fieldAccess = fix $ \_ -> 
     PC.try fieldAccessNPS <|> 
     (do
         p  <- primary
@@ -497,7 +499,7 @@ fieldAccess =
         let fap = foldl (\a s -> s a) p ss
         case fap of
             FieldAccess fa -> pure fa
-            _ -> fail "")
+            _ -> fail "unpexcted field access case")
 
 instanceCreationSuffix :: P (Exp -> Exp)
 instanceCreationSuffix = do 
@@ -591,7 +593,7 @@ stmtNSI = ifStmt <|> whileStmt <|> forStmt <|> labeledStmt <|> stmtNoTrail
         pure $ Labeled i s
 
 stmtNoTrail :: P Stmt
-stmtNoTrail =
+stmtNoTrail = fix $ \_ -> 
     -- empty statement
     const Empty <$> semiColon <|>
     -- inner block
@@ -650,7 +652,7 @@ stmtNoTrail =
 -- For loops
 
 forInit :: P ForInit
-forInit = 
+forInit = fix $ \_ -> 
     (PC.try 
         (do 
             (Tuple3 m t vds) <- localVarDecl
@@ -658,7 +660,7 @@ forInit =
     (seplist1 stmtExp comma >>= (pure <<< ForInitExps))
 
 forUp :: P (List Exp)
-forUp = seplist1 stmtExp comma
+forUp = fix $ \_ -> seplist1 stmtExp comma
 
 -- Switches
 
@@ -698,7 +700,8 @@ arrayAccessSuffix = do
     e <- list1 $ brackets (fix $ \_ -> expression)
     pure $ \ref -> ArrayIndex ref e
 
-arrayAccess = 
+arrayAccess :: P ArrayIndex
+arrayAccess = fix $ \_ -> 
     PC.try arrayAccessNPS <|> 
     (do
         p <- primaryNoNewArrayNPS
@@ -706,7 +709,7 @@ arrayAccess =
         let aap = foldl (\a s -> s a) p ss
         case aap of
             ArrayAccess ain -> pure ain
-            _ -> fail "")
+            _ -> fail "unexpected array accesss case")
 
 methodRef :: P Exp
 methodRef = 
@@ -715,19 +718,20 @@ methodRef =
 -- Statements
 
 block :: P Block
-block = braces $ Block <$> (list $ fix $ \_ -> blockStmt)
+block = fix $ \_ -> braces $ Block <$> list blockStmt
 
 blockStmt :: P BlockStmt
-blockStmt = 
+blockStmt = fix $ \_ -> 
     (PC.try $ do
-        ms  <- list $ fix $ \_ -> modifier
-        cd  <- fix $ \_ -> classDecl
+        ms  <- list $ modifier
+        cd  <- classDecl
         pure $ LocalClass (cd ms)) <|>
     (PC.try $ do  
-        (Tuple3 m t vds) <- endSemi $ (fix $ \_ -> localVarDecl) 
-        pure $ LocalVars m t vds) 
+        (Tuple3 m t vds) <- endSemi $ localVarDecl
+        pure $ LocalVars m t vds) <|>
+    (BlockStmt <$> stmt) <?> "unexpected blobck stmt"
 
-
+   
 
 ----------------- Type parameters and arguments -----------------
 typeParams :: P (List TypeParam)
@@ -924,21 +928,21 @@ token nextpos showt test = do
                 
                 pure x
 
-javaToken' :: forall a. (Token -> Maybe a) -> P a
-javaToken' test =  token posT showT testT
+javaToken :: forall a. (Token -> Maybe a) -> P a
+javaToken test =  token posT showT testT
     where 
         showT (L _ t) = show t
         posT  _ (L p _) _ = Newtype.unwrap p
         testT (L _ t) = test t
 
-javaToken :: forall a. (Token -> Maybe a) -> P a
-javaToken f = do
-    (L _ t) <- PT.token (\(L pos _) -> Newtype.unwrap pos)
-    p <- position
-    maybe (fail $ "error parsing toking: " <> show t <> ": " <> show p) pure $ f t
+-- javaToken :: forall a. (Token -> Maybe a) -> P a
+-- javaToken f = do
+--     (L _ t) <- PT.token (\(L pos _) -> Newtype.unwrap pos)
+--     p <- position
+--     maybe (fail $ "error parsing toking: " <> show t <> ": " <> show p) pure $ f t
 
 tok :: Token -> P Unit 
-tok t = javaToken' (\r -> if r == t then Just unit else Nothing)
+tok t = javaToken (\r -> if r == t then Just unit else Nothing)
 
 -- tok :: Token -> P Unit
 -- tok t = javaToken (\r -> if r == t then Just unit else Nothing)
