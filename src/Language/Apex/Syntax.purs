@@ -265,15 +265,18 @@ newtype MethodBody = MethodBody (Maybe Block)
 data VarDecl
     = VarDecl VarDeclId (Maybe VarInit)
     -- Getter and Setter respectively i.e: myvariable { public get; }
-    | Property VarDeclId (Maybe Modifier) VarDeclId (Maybe Block)
+    | Property VarDeclId (List Accessor)
 
-
+data Accessor = Accessor (Maybe Modifier) AccessorVar (Maybe Block)
 -- | The name of a variable in a declaration, which may be an array.
 data VarDeclId
     = VarId Ident
     | VarDeclArray VarDeclId 
-    | Getter
+
+data AccessorVar 
+    = Getter
     | Setter
+    
     -- ^ Multi-dimensional arrays are represented by nested applications of 'VarDeclArray'.
 
 -- | Explicit initializer for a variable declaration.
@@ -374,6 +377,8 @@ derive instance genericSwitchBlock :: Generic SwitchBlock _
 derive instance genericCatch :: Generic Catch _
 derive instance genericForInit :: Generic ForInit _
 derive instance genericStmt :: Generic Stmt _
+derive instance genericAccessor :: Generic Accessor _
+derive instance genericAccessorVar :: Generic AccessorVar _
 
 
 derive instance eqOp :: Eq Op
@@ -409,10 +414,19 @@ derive instance eqSwitchBlock :: Eq SwitchBlock
 derive instance eqCatch :: Eq Catch 
 derive instance eqForInit :: Eq ForInit 
 derive instance eqStmt :: Eq Stmt 
+derive instance eqAccessor :: Eq Accessor 
+derive instance eqAccessorVar :: Eq AccessorVar
+
 
 instance showStmt ::  Show Stmt where 
     show (Try b lc mb) = "(Try " <> show b <> show lc <> show mb <> ")"
     show x = genericShow x 
+
+instance showAccessor ::  Show Accessor where 
+    show = genericShow 
+
+instance showAccessorVar ::  Show AccessorVar where 
+    show = genericShow 
 
 instance showForInit ::  Show ForInit where 
     show = genericShow

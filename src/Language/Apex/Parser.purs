@@ -54,7 +54,7 @@ ident = javaToken $ \t -> case t of
     _ -> Nothing
 
 fieldDecl :: P (Mod MemberDecl)
-fieldDecl = endSemi $ do
+fieldDecl = endOptSemi $ do
     typ <- type_
     vds <- PC.try (list1 propertyDecl) <|> varDecls
     pure $ \ms -> FieldDecl ms typ vds
@@ -276,17 +276,20 @@ localVarDecl = do
 
 propertyDecl :: P VarDecl 
 propertyDecl = fix $ \_ -> do 
-    vdi <- varDeclId
-    (Tuple3 md vdi2 b) <- braces propertyDecl'
-    pure $ Property vdi md vdi2 b
+    vdi  <- varDeclId
+    lacs <- braces $ list propertyDecl'
+    pure $ Property vdi lacs
 
-propertyDecl' :: P (Tuple3 (Maybe Modifier) VarDeclId (Maybe Block))
+propertyDecl' :: P Accessor
 propertyDecl' = fix $ \_ -> do
     md  <- optMaybe modifier 
-    vdi <- varDeclId
+    acv <- accessorVar
     _   <- PC.optional semiColon
     vi  <- optMaybe $ block
-    pure $ Tuple3 md vdi vi
+    pure $ Accessor md acv vi
+
+accessorVar :: P AccessorVar
+accessorVar = (tok KW_Get *> pure Getter) <|> tok KW_Set *> pure Setter <?> "Unpexpected token at accessor position"
 
 varDecls :: P (List VarDecl)
 varDecls = fix $ \_ -> seplist1 varDecl comma 
@@ -298,13 +301,10 @@ varDecl = do
     pure $ VarDecl vdi vi 
     
 varDeclId :: P VarDeclId 
-varDeclId = 
-    PC.try (tok KW_Get *> pure Getter) <|>
-    PC.try (tok KW_Set *> pure Setter) <|>
-    (do 
-        id <- ident
-        abs <- list arrBrackets
-        pure $ foldl (\f _ -> VarDeclArray <<< f) VarId abs id)
+varDeclId = do 
+    id <- ident
+    abs <- list arrBrackets
+    pure $ foldl (\f _ -> VarDeclArray <<< f) VarId abs id
 
 varInit :: P VarInit
 varInit = fix $ \_ -> InitArray <$> arrayInit <|> InitExp <$> expression 
@@ -964,6 +964,10 @@ list1 = List.someRec
 
 endSemi :: forall a. P a -> P a
 endSemi p = p >>= \a -> semiColon *> pure a
+
+endOptSemi :: forall a. P a -> P a
+endOptSemi p = p >>= \a -> PC.optional semiColon *> pure a
+
 
 arrBrackets :: P Unit
 arrBrackets = brackets $ pure unit

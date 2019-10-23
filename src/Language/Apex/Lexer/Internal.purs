@@ -35,9 +35,9 @@ class ReadToken a where
 
 instance readTokenT :: ReadToken Token where 
     readToken = 
+        PC.try (LongTok                <<=: longLiteral)    <|>
         PC.try (DoubleTok              <<=: doubleLiteral)  <|>
         PC.try (IntegerTok             <<=: integerLiteral) <|>
-        PC.try (LongTok                <<=: longLiteral)    <|>
         PC.try (StringTok              <<=: stringLiteral)  <|>
         PC.try (BoolTok                <<=: boolLiteral)    <|>
         PC.try (Period                 <=: period     )     <|>
