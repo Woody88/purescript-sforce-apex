@@ -12,8 +12,8 @@ import Text.Parsing.Parser.String as PS
 import Language.Apex.Lexer.Internal
 import Language.Apex.Lexer.Types (L, P, Token)
 
-lexJava :: String -> List.List (L Token)
-lexJava = runTokenizer
+lexApex :: String -> List.List (L Token)
+lexApex = runTokenizer
 
 runTokenizer :: String -> List.List (L Token)
 runTokenizer s = List.fromFoldable $ case runParser s tokenize of

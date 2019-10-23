@@ -91,6 +91,8 @@ instance readTokenT :: ReadToken Token where
         PC.try (KW_Try                 <=: str "try") <|> 
         PC.try (KW_Void                <=: str "void") <|> 
         PC.try (KW_While               <=: str "while") <|> 
+        PC.try (KW_Get                 <=: str "get") <|> 
+        PC.try (KW_Set                 <=: str "set") <|> 
         PC.try (Op_Equals              <=: PS.string "==")    <|>
         PC.try (Op_LThanE              <=: PS.string "<=")    <|>
         PC.try (Op_GThanE              <=: PS.string ">=")    <|>

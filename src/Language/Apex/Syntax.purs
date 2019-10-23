@@ -15,6 +15,8 @@ type Argument = Exp
 
 data Tuple3 a b c = Tuple3 a b c 
 
+data Property = Getter | Setter
+
 -- | A binary infix operator.
 data Op = Mult  | Div   | Rem    | Add    | Sub   | LShift | RShift | RRShift
         | LThan | GThan | LThanE | GThanE | Equal | NotEq
@@ -264,11 +266,15 @@ newtype MethodBody = MethodBody (Maybe Block)
 -- | A declaration of a variable, which may be explicitly initialized.
 data VarDecl
     = VarDecl VarDeclId (Maybe VarInit)
+    -- Getter and Setter respectively
+    | Property VarDeclId (Maybe VarInit) (Maybe VarInit)
 
 -- | The name of a variable in a declaration, which may be an array.
 data VarDeclId
     = VarId Ident
     | VarDeclArray VarDeclId 
+    | Get 
+    | Set
     -- ^ Multi-dimensional arrays are represented by nested applications of 'VarDeclArray'.
 
 -- | Explicit initializer for a variable declaration.
@@ -491,6 +497,7 @@ instance showVarDecl :: Show VarDecl where
 instance showVarDeclId:: Show VarDeclId where 
     show  (VarId i) = "(VarId " <> show i <> ")"
     show (VarDeclArray v) = "(VarDeclArray " <> show v <> ")"
+    show x = genericShow x
 
 instance showVarInit :: Show VarInit where 
     show (InitExp e) = "(InitExp "  <> show e <> ")"

@@ -14,7 +14,7 @@ import Data.List as List
 import Data.Maybe (Maybe(..), isJust, fromMaybe, maybe)
 import Data.Newtype as Newtype
 import Data.Tuple (Tuple(..))
-import Language.Apex.Lexer (lexJava)
+import Language.Apex.Lexer (lexApex)
 import Language.Apex.Syntax
 import Language.Apex.Lexer.Types (L(..), Token(..))
 import Language.Apex.Syntax.Types (ClassType(..), Ident(..), Literal(..), Name(..), PrimType(..), RefType(..), Type(..), TypeArgument(..), TypeParam(..))
@@ -27,7 +27,7 @@ type P = Parser (List (L Token))
 ------------- Top Level parsing -----------------
 
 parseCompilationUnit :: String -> Either ParseError CompilationUnit
-parseCompilationUnit input = runParser (lexJava input) compilationUnit
+parseCompilationUnit input = runParser (lexApex input) compilationUnit
 
 ------------- Compilation Unit -----------------
 compilationUnit :: P CompilationUnit
