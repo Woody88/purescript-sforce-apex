@@ -56,7 +56,7 @@ ident = javaToken $ \t -> case t of
 fieldDecl :: P (Mod MemberDecl)
 fieldDecl = endSemi $ do
     typ <- type_
-    vds <- varDecls
+    vds <- PC.try (list1 propertyDecl) <|> varDecls
     pure $ \ms -> FieldDecl ms typ vds
 
 methodDecl :: P (Mod MemberDecl)
@@ -274,6 +274,20 @@ localVarDecl = do
     vds <- varDecls
     pure $ Tuple3 ms typ vds
 
+propertyDecl :: P VarDecl 
+propertyDecl = fix $ \_ -> do 
+    vdi <- varDeclId
+    (Tuple3 md vdi2 b) <- braces propertyDecl'
+    pure $ Property vdi md vdi2 b
+
+propertyDecl' :: P (Tuple3 (Maybe Modifier) VarDeclId (Maybe Block))
+propertyDecl' = fix $ \_ -> do
+    md  <- optMaybe modifier 
+    vdi <- varDeclId
+    _   <- PC.optional semiColon
+    vi  <- optMaybe $ block
+    pure $ Tuple3 md vdi vi
+
 varDecls :: P (List VarDecl)
 varDecls = fix $ \_ -> seplist1 varDecl comma 
 
@@ -282,12 +296,15 @@ varDecl = do
     vdi <- varDeclId
     vi  <- optMaybe $ tok Op_Equal *> varInit 
     pure $ VarDecl vdi vi 
-
+    
 varDeclId :: P VarDeclId 
-varDeclId = do 
-    id <- ident
-    abs <- list arrBrackets
-    pure $ foldl (\f _ -> VarDeclArray <<< f) VarId abs id
+varDeclId = 
+    PC.try (tok KW_Get *> pure Getter) <|>
+    PC.try (tok KW_Set *> pure Setter) <|>
+    (do 
+        id <- ident
+        abs <- list arrBrackets
+        pure $ foldl (\f _ -> VarDeclArray <<< f) VarId abs id)
 
 varInit :: P VarInit
 varInit = fix $ \_ -> InitArray <$> arrayInit <|> InitExp <$> expression 

@@ -15,8 +15,6 @@ type Argument = Exp
 
 data Tuple3 a b c = Tuple3 a b c 
 
-data Property = Getter | Setter
-
 -- | A binary infix operator.
 data Op = Mult  | Div   | Rem    | Add    | Sub   | LShift | RShift | RRShift
         | LThan | GThan | LThanE | GThanE | Equal | NotEq
@@ -249,7 +247,7 @@ data Decl
 --   constants (not fields), abstract methods, and no constructors.
 data MemberDecl
     -- | The variables of a class type are introduced by field declarations.
-    = FieldDecl (List Modifier) Type (List VarDecl)
+    = FieldDecl (List Modifier) Type (List VarDecl) 
     -- | A method declares executable code that can be invoked, passing a fixed number of values as arguments.
     | MethodDecl (List Modifier) (List TypeParam) (Maybe Type) Ident (List FormalParam) (Maybe Exp) MethodBody
     -- | A constructor is used in the creation of an object that is an instance of a class.
@@ -266,15 +264,16 @@ newtype MethodBody = MethodBody (Maybe Block)
 -- | A declaration of a variable, which may be explicitly initialized.
 data VarDecl
     = VarDecl VarDeclId (Maybe VarInit)
-    -- Getter and Setter respectively
-    | Property VarDeclId (Maybe VarInit) (Maybe VarInit)
+    -- Getter and Setter respectively i.e: myvariable { public get; }
+    | Property VarDeclId (Maybe Modifier) VarDeclId (Maybe Block)
+
 
 -- | The name of a variable in a declaration, which may be an array.
 data VarDeclId
     = VarId Ident
     | VarDeclArray VarDeclId 
-    | Get 
-    | Set
+    | Getter
+    | Setter
     -- ^ Multi-dimensional arrays are represented by nested applications of 'VarDeclArray'.
 
 -- | Explicit initializer for a variable declaration.
