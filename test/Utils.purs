@@ -14,7 +14,7 @@ getApexFileNames :: Aff (Array FilePath)
 getApexFileNames = filter isApexFile <$> Node.readdir "./test/apex"
 
 readApexFile :: FilePath -> Aff String
-readApexFile = Node.readTextFile UTF8
+readApexFile f = Node.readTextFile UTF8 $ "./test/apex/" <> f
 
 isApexFile :: FilePath -> Boolean 
 isApexFile = contains apexPattern
