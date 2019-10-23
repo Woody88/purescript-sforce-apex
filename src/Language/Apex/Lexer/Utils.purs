@@ -1,11 +1,30 @@
 module Language.Apex.Lexer.Utils where 
 
 import Prelude
+
+import Control.Monad.State (gets, modify_)
 import Data.List (List, someRec)
-import Text.Parsing.Parser (position)
+import Data.Maybe (Maybe(..))
+import Data.Newtype (wrap)
+import Data.String (drop, length, toLower)
 import Language.Apex.Lexer.Types (L(..), Token, P, Pos(..))
+import Text.Parsing.Parser (ParseState(..), ParserT(..), fail, position)
+import Text.Parsing.Parser.Pos (updatePosString)
+import Text.Parsing.Parser.String (class StringLike, indexOf)
 
 
+-- | Match the specified string - case insensitive .
+istring :: String -> P String
+istring str = do
+  input <- gets \(ParseState input _ _) -> input
+  case indexOf (wrap str) (toLower input) of
+    Just 0 -> do
+      modify_ \(ParseState _ position _) ->
+        ParseState (drop (length str) input)
+                   (updatePosString position str)
+                   true
+      pure str
+    _ -> fail ("Expected " <> show str)
 
 -- | Match one or more times.
 many1 :: forall a. P a -> P (List a)

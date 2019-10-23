@@ -226,12 +226,17 @@ interfaceBodyDecl = semiColon *> pure Nothing <|>
        pure $ Just (imd ms)
 
 interfaceMemberDecl :: P (Mod MemberDecl)
-interfaceMemberDecl = fix $ \_ -> 
-    (do cd  <- classDecl
-        pure $ \ms -> MemberClassDecl (cd ms)) <|>
-    (do id  <- PC.try interfaceDecl
-        pure $ \ms -> MemberInterfaceDecl (id ms)) <|>
-    fieldDecl
+interfaceMemberDecl = fix $ \_ -> absMethodDecl 
+
+-- MethodDecl without any implementation. I.e: interface method definition
+absMethodDecl :: P (Mod MemberDecl)
+absMethodDecl = do
+    tps <- lopt typeParams
+    rt  <- resultType
+    id  <- ident
+    fps <- formalParams
+    semiColon
+    pure $ \ms -> MethodDecl ms tps rt id fps Nothing (MethodBody Nothing)
 
 -- Modifiers
 
@@ -863,6 +868,7 @@ primType =
     tok KW_Boolean  *> pure BooleanT  <|>
     tok KW_Object   *> pure ObjectT   <|>
     tok KW_Decimal  *> pure DecimalT  <|>
+    tok KW_ID       *> pure IdT       <|>
     tok KW_Integer  *> pure IntegerT  <|>
     tok KW_Long     *> pure LongT     <|>
     tok KW_Blob     *> pure BlobT     <|>

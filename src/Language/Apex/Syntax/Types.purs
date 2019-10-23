@@ -51,6 +51,7 @@ data PrimType
     | DecimalT 
     | IntegerT
     | LongT
+    | IdT
     | BlobT
     | DateT
     | DatetimeT

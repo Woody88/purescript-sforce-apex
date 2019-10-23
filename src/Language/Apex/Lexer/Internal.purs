@@ -41,58 +41,58 @@ instance readTokenT :: ReadToken Token where
         PC.try (StringTok              <<=: stringLiteral)  <|>
         PC.try (BoolTok                <<=: boolLiteral)    <|>
         PC.try (Period                 <=: period     )     <|>
-        PC.try (KW_Override            <=: str "override" ) <|>
-        PC.try (KW_With_Share          <=: str "with sharing" ) <|>
-        PC.try (KW_Without_Share       <=: str "without sharing") <|> 
-        PC.try (KW_Inherit_Share       <=: str "inherit sharing") <|>
-        PC.try (KW_Object              <=: str "object" ) <|>
-        PC.try (KW_Time                <=: str "time") <|> 
-        PC.try (KW_ID                  <=: str "id") <|>
-        PC.try (KW_Date                <=: str "date") <|> 
-        PC.try (KW_Datetime            <=: str "datetime") <|>
-        PC.try (KW_When                <=: str "when") <|> 
-        PC.try (KW_Abstract            <=: str "abstract") <|> 
-        PC.try (KW_Integer             <=: str "integer") <|> 
-        PC.try (KW_Assert              <=: str "assert") <|> 
-        PC.try (KW_Boolean             <=: str "boolean") <|> 
-        PC.try (KW_Break               <=: str "break") <|> 
-        PC.try (KW_Blob                <=: str "blob") <|> 
-        PC.try (KW_Case                <=: str "case") <|> 
-        PC.try (KW_Catch               <=: str "catch") <|> 
-        PC.try (KW_Class               <=: str "class") <|> 
-        PC.try (KW_Const               <=: str "const") <|> 
-        PC.try (KW_Continue            <=: str "continue") <|> 
-        PC.try (KW_WhenElse            <=: str "when else") <|> 
-        PC.try (KW_Do                  <=: str "do") <|> 
-        PC.try (KW_Double              <=: str "double") <|> 
-        PC.try (KW_Else                <=: str "else") <|> 
-        PC.try (KW_Enum                <=: str "enum") <|> 
-        PC.try (KW_Extends             <=: str "extends") <|> 
-        PC.try (KW_Final               <=: str "final") <|> 
-        PC.try (KW_Finally             <=: str "finally") <|> 
-        PC.try (KW_Decimal             <=: str "decimal") <|> 
-        PC.try (KW_For                 <=: str "for") <|> 
-        PC.try (KW_If                  <=: str "if") <|> 
-        PC.try (KW_Implements          <=: str "implements") <|> 
-        PC.try (KW_Import              <=: str "import") <|> 
-        PC.try (KW_Instanceof          <=: str "instanceof") <|> 
-        PC.try (KW_Interface           <=: str "interface") <|> 
-        PC.try (KW_Long                <=: str "long") <|> 
-        PC.try (KW_New                 <=: str "new") <|> 
-        PC.try (KW_Private             <=: str "private") <|> 
-        PC.try (KW_Protected           <=: str "protected") <|> 
-        PC.try (KW_Public              <=: str "public") <|> 
-        PC.try (KW_Return              <=: str "return") <|> 
-        PC.try (KW_Static              <=: str "static") <|> 
-        PC.try (KW_Super               <=: str "super") <|> 
-        PC.try (KW_Switch              <=: str "switch on") <|> 
-        PC.try (KW_This                <=: str "this") <|> 
-        PC.try (KW_Transient           <=: str "transient") <|> 
-        PC.try (KW_Try                 <=: str "try") <|> 
-        PC.try (KW_Void                <=: str "void") <|> 
-        PC.try (KW_While               <=: str "while") <|> 
-        PC.try (KW_Get                 <=: str "get") <|> 
-        PC.try (KW_Set                 <=: str "set") <|> 
+        PC.try (KW_Override            <=: istring "override" ) <|>
+        PC.try (KW_With_Share          <=: istring "with sharing" ) <|>
+        PC.try (KW_Without_Share       <=: istring "without sharing") <|> 
+        PC.try (KW_Inherit_Share       <=: istring "inherit sharing") <|>
+        PC.try (KW_Object              <=: istring "object" ) <|>
+        PC.try (KW_Time                <=: istring "time") <|> 
+        PC.try (KW_ID                  <=: istring "id") <|>
+        PC.try (KW_Date                <=: istring "date") <|> 
+        PC.try (KW_Datetime            <=: istring "datetime") <|>
+        PC.try (KW_When                <=: istring "when") <|> 
+        PC.try (KW_Abstract            <=: istring "abstract") <|> 
+        PC.try (KW_Integer             <=: istring "integer") <|> 
+        PC.try (KW_Assert              <=: istring "assert") <|> 
+        PC.try (KW_Boolean             <=: istring "boolean") <|> 
+        PC.try (KW_Break               <=: istring "break") <|> 
+        PC.try (KW_Blob                <=: istring "blob") <|> 
+        PC.try (KW_Case                <=: istring "case") <|> 
+        PC.try (KW_Catch               <=: istring "catch") <|> 
+        PC.try (KW_Class               <=: istring "class") <|> 
+        PC.try (KW_Const               <=: istring "const") <|> 
+        PC.try (KW_Continue            <=: istring "continue") <|> 
+        PC.try (KW_WhenElse            <=: istring "when else") <|> 
+        PC.try (KW_Double              <=: istring "double") <|> 
+        PC.try (KW_Do                  <=: istring "do") <|> 
+        PC.try (KW_Else                <=: istring "else") <|> 
+        PC.try (KW_Enum                <=: istring "enum") <|> 
+        PC.try (KW_Extends             <=: istring "extends") <|> 
+        PC.try (KW_Final               <=: istring "final") <|> 
+        PC.try (KW_Finally             <=: istring "finally") <|> 
+        PC.try (KW_Decimal             <=: istring "decimal") <|> 
+        PC.try (KW_For                 <=: istring "for") <|> 
+        PC.try (KW_If                  <=: istring "if") <|> 
+        PC.try (KW_Implements          <=: istring "implements") <|> 
+        PC.try (KW_Import              <=: istring "import") <|> 
+        PC.try (KW_Instanceof          <=: istring "instanceof") <|> 
+        PC.try (KW_Interface           <=: istring "interface") <|> 
+        PC.try (KW_Long                <=: istring "long") <|> 
+        PC.try (KW_New                 <=: istring "new") <|> 
+        PC.try (KW_Private             <=: istring "private") <|> 
+        PC.try (KW_Protected           <=: istring "protected") <|> 
+        PC.try (KW_Public              <=: istring "public") <|> 
+        PC.try (KW_Return              <=: istring "return") <|> 
+        PC.try (KW_Static              <=: istring "static") <|> 
+        PC.try (KW_Super               <=: istring "super") <|> 
+        PC.try (KW_Switch              <=: istring "switch on") <|> 
+        PC.try (KW_This                <=: istring "this") <|> 
+        PC.try (KW_Transient           <=: istring "transient") <|> 
+        PC.try (KW_Try                 <=: istring "try") <|> 
+        PC.try (KW_Void                <=: istring "void") <|> 
+        PC.try (KW_While               <=: istring "while") <|> 
+        PC.try (KW_Get                 <=: istring "get") <|> 
+        PC.try (KW_Set                 <=: istring "set") <|> 
         PC.try (Op_Equals              <=: PS.string "==")    <|>
         PC.try (Op_LThanE              <=: PS.string "<=")    <|>
         PC.try (Op_GThanE              <=: PS.string ">=")    <|>
@@ -142,16 +142,7 @@ instance readTokenT :: ReadToken Token where
         where 
             period = (PS.char '.' <* PC.notFollowedBy PT.digit)
             identTok = IdentTok <<=: identifier
-            str  = caseInsensitiveString
             
--- Match the lowercase or uppercase form of 'c'
-caseInsensitiveChar c = PS.char (toLower c) <|> PS.char (toUpper c)
-
--- Match the string 's', accepting either lowercase or uppercase form of each character 
-caseInsensitiveString s = PC.try (fromCharArray <$> traverse caseInsensitiveChar charList ) <?> ("\"" <> s <> "\"")
-    where 
-        charList = toCharArray s
-
 javaLexer :: TokenParser
 javaLexer = PT.makeTokenParser javaLanguage
 
