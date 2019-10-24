@@ -185,6 +185,8 @@ data BlockStmt
     = LocalVars (List Modifier) Type (List VarDecl)
     -- BlockStmt Stmt
     | LocalClass ClassDecl
+    -- Getter and Setter respectively i.e: myvariable { public get; }
+    | Property (List Accessor)
     | BlockStmt Stmt
 
 derive instance genericBlock :: Generic Block _ 
@@ -264,8 +266,6 @@ newtype MethodBody = MethodBody (Maybe Block)
 -- | A declaration of a variable, which may be explicitly initialized.
 data VarDecl
     = VarDecl VarDeclId (Maybe VarInit)
-    -- Getter and Setter respectively i.e: myvariable { public get; }
-    | Property VarDeclId (List Accessor)
 
 data Accessor = Accessor (Maybe Modifier) AccessorVar (Maybe Block)
 -- | The name of a variable in a declaration, which may be an array.
@@ -302,6 +302,8 @@ data Modifier
     | Abstract
     | Final
     | Static
+    | Global
+    | Virtual
     | Transient
     | With_Share
     | Without_Share
@@ -542,4 +544,6 @@ instance showModifier :: Show Modifier where
    show Without_Share = "without sharing"
    show Inherit_Share = "inherit sharing"
    show Override = "override"
+   show Global = "global"
+   show Virtual = "virtual"
    show (Annotation a) = show a

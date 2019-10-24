@@ -21,7 +21,7 @@ import Language.Apex.Syntax.Types (ClassType(..), Ident(..), Literal(..), Name(.
 import Text.Parsing.Parser (ParseState(..), Parser, ParseError, runParser, fail)
 import Text.Parsing.Parser.Combinators ((<?>))
 import Text.Parsing.Parser.Combinators as PC
-
+import Text.Parsing.Parser.Token as PT 
 type P = Parser (List (L Token))
 
 ------------- Top Level parsing -----------------
@@ -56,7 +56,7 @@ ident = javaToken $ \t -> case t of
 fieldDecl :: P (Mod MemberDecl)
 fieldDecl = endOptSemi $ do
     typ <- type_
-    vds <- PC.try (list1 propertyDecl) <|> varDecls
+    vds <- varDecls
     pure $ \ms -> FieldDecl ms typ vds
 
 methodDecl :: P (Mod MemberDecl)
@@ -165,8 +165,8 @@ memberDecl = fix $ \_ ->
     (PC.try $ do
         id  <- interfaceDecl
         pure $ \ms -> MemberInterfaceDecl (id ms)) <|>
-    PC.try fieldDecl <|>
     PC.try methodDecl <|>
+    PC.try fieldDecl <|>
     constrDecl
     
 constrDecl :: P (Mod MemberDecl)
@@ -247,6 +247,8 @@ modifier =
     <|> tok KW_Protected     *> pure Protected
     <|> tok KW_Private       *> pure Private
     <|> tok KW_Abstract      *> pure Abstract
+    <|> tok KW_Global        *> pure Global
+    <|> tok KW_Virtual       *> pure Virtual
     <|> tok KW_Final         *> pure Final
     <|> tok KW_Transient     *> pure Transient
     <|> tok KW_With_Share    *> pure With_Share
@@ -262,7 +264,7 @@ annotation = do
 
 
 evlist :: P (List (Tuple Ident ElementValue))
-evlist = fix $ \_ -> seplist1 elementValuePair comma
+evlist = fix $ \_ -> list elementValuePair 
 
 elementValuePair :: P (Tuple Ident ElementValue)
 elementValuePair = fix $ \_ -> Tuple <$> ident <* tok Op_Equal <*> elementValue
@@ -279,14 +281,8 @@ localVarDecl = do
     vds <- varDecls
     pure $ Tuple3 ms typ vds
 
-propertyDecl :: P VarDecl 
-propertyDecl = fix $ \_ -> do 
-    vdi  <- varDeclId
-    lacs <- braces $ list propertyDecl'
-    pure $ Property vdi lacs
-
-propertyDecl' :: P Accessor
-propertyDecl' = fix $ \_ -> do
+accessor :: P Accessor
+accessor = fix $ \_ -> do
     md  <- optMaybe modifier 
     acv <- accessorVar
     _   <- PC.optional semiColon
@@ -797,6 +793,9 @@ blockStmt = fix $ \_ ->
     (PC.try $ do  
         (Tuple3 m t vds) <- endSemi $ localVarDecl
         pure $ LocalVars m t vds) <|>
+    (PC.try $ do 
+        lacs <- list1 accessor
+        pure $ Property lacs) <|>
     (BlockStmt <$> stmt) <?> "unexpected blobck stmt"
 
    
