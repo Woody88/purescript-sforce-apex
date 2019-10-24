@@ -522,15 +522,15 @@ infixExpSuffix =
 
 unaryExp :: P Exp 
 unaryExp = fix $ \_ -> 
-    -- PC.try preIncDec <|>
-    -- PC.try (do
-    --     op <- prefixOp
-    --     ue <- unaryExp
-    --     pure $ op ue) <|>
-    -- PC.try (do
-    --     t <- parens type_
-    --     e <- unaryExp
-    --     pure $ Cast t e) <|>
+    PC.try preIncDec <|>
+    PC.try (do
+        op <- prefixOp
+        ue <- unaryExp
+        pure $ op ue) <|>
+    PC.try (do
+        t <- parens type_
+        e <- unaryExp
+        pure $ Cast t e) <|>
     postfixExp
 
 postfixExp :: P Exp 
@@ -580,7 +580,7 @@ instanceCreationSuffix = do
     pure $ \p -> QualInstanceCreation p tas i as mcb
 
 stmt :: P Stmt
-stmt = forStmt <|> labeledStmt <|> stmtNoTrail
+stmt = ifStmt <|> whileStmt <|> forStmt <|> labeledStmt <|> stmtNoTrail
   where
     ifStmt = do
         tok KW_If

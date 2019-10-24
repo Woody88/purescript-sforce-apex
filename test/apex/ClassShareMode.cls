@@ -1,3 +1,4 @@
+/* https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_classes_keywords_sharing.htm */
 public with sharing class MyClass {
 
 } 

@@ -35,6 +35,7 @@ class ReadToken a where
 
 instance readTokenT :: ReadToken Token where 
     readToken = 
+        PC.try identTok  <|>
         PC.try (LongTok                <<=: longLiteral)    <|>
         PC.try (DoubleTok              <<=: doubleLiteral)  <|>
         PC.try (IntegerTok             <<=: integerLiteral) <|>
@@ -137,8 +138,7 @@ instance readTokenT :: ReadToken Token where
         PC.try (Op_Bang                <=: PS.char '!')     <|>
         PC.try (Op_Tilde               <=: PS.char '~')     <|>
         PC.try (Op_Query               <=: PS.char '?')     <|>
-        PC.try (Op_Colon               <=: PS.char ':')     <|>
-        identTok
+        (Op_Colon                      <=: PS.char ':')    
         where 
             period = (PS.char '.' <* PC.notFollowedBy PT.digit)
             identTok = IdentTok <<=: identifier
@@ -157,12 +157,14 @@ javaLanguage = do
     javaStyleDef
     
 javaReservedNames = 
-    [ "abstract" , "assert" , "boolean" , "break" , "blob" , "byte" , "case" , "catch" , "char" , "class" , "const" 
-    , "continue" , "date" , "dfatetime" , "decimal" , "do" , "double" , "else" , "enum" , "extends" , "final" 
-    , "finally" , "for" , "if" , "id" , "integer" , "implements" , "instanceof" , "interface" , "long" , "new" 
-    , "object" , "private" , "protected" , "public" , "return" , "static" , "super" , "switch on" , "string" , "time" , "this" 
-    , "throw" , "throws" , "transient" , "try" , "void" , "while", "when", "null"
+    [ "override" ,"with" ,"without" ,"inherit" ,"object" ,"time" ,"id" ,"date" ,"datetime" ,"when" ,"abstract" ,"integer" 
+    , "assert" ,"boolean" ,"break" ,"blob" ,"case" ,"catch" ,"class" ,"const" ,"continue" ,"when" ,"double" ,"do" ,"else" 
+    , "enum" ,"extends" ,"final" ,"finally" ,"decimal" ,"for" ,"if" ,"implements" ,"import" ,"instanceof" ,"interface" ,"long" 
+    , "new" ,"private" ,"protected" ,"public" ,"return" ,"static" ,"super" ,"switch" ,"this" ,"transient" ,"try" ,"void" ,"while" 
+    , "get" ,"set" 
     ]
+
+    
 
 javaReservedOpNames =
     [ "=" , ">" , "<" , "!" , "~" , "?" , ":" , "==" , "===" , "<=" , ">=" , "!=" , "!==" , "&&" , "||" , "++" , "--" , "+" 
@@ -206,9 +208,9 @@ dot :: P String
 dot = javaLexer.dot 
 
 identifier :: P String
-identifier = do 
-    arrChar <- Array.cons <$> javaLetter <*> Array.many (PC.try PT.alphaNum <|> PS.oneOf ['_', '$'])
-    pure $ fromCharArray arrChar
+identifier = javaLexer.identifier
+    -- arrChar <- Array.cons <$> javaLetter <*> Array.many (PC.try PT.alphaNum <|> PS.oneOf ['_', '$'])
+    -- pure $ fromCharArray arrChar
 
 -- parses a reserved name
 reserved :: String -> P Unit
@@ -241,10 +243,10 @@ whiteSpace = javaLexer.whiteSpace
 -- It seem like a Encoding Util class must be used for hex convertion only
 -- https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_classes_restful_encodingUtil.htm
 integerLiteral :: P Int 
-integerLiteral = javaLexer.integer 
--- integerLiteral = do 
---     x <- decimalIntegerLiteral  <* PC.notFollowedBy (PS.char '.')
---     pure $ x
+-- integerLiteral = javaLexer.integer 
+integerLiteral = do 
+    x <- decimalIntegerLiteral  <* PC.notFollowedBy (PS.char '.')
+    pure $ x
 
 doubleLiteral :: P Number 
 doubleLiteral = javaLexer.float
