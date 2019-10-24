@@ -23,7 +23,7 @@ data Token  =
     | KW_For | KW_If | KW_Implements | KW_Import | KW_Instanceof | KW_Integer | KW_Interface | KW_Long 
     | KW_New | KW_Private | KW_Protected | KW_Public | KW_Return | KW_Short | KW_Static | KW_Super 
     | KW_Switch | KW_This | KW_Throw | KW_Throws | KW_Transient | KW_Try | KW_Void | KW_While 
-    | KW_Object | KW_Time | KW_ID | KW_Date | KW_Datetime | KW_Override | KW_Virtual | KW_Global 
+    | KW_Object | KW_Time | KW_ID | KW_Date | KW_Datetime | KW_Override | KW_Virtual | KW_Global | KW_String
 
     -- Sharing 
     | KW_With_Share | KW_Without_Share | KW_Inherit_Share

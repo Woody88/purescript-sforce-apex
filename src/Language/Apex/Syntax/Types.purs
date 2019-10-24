@@ -37,12 +37,14 @@ data RefType
 data ClassType
     = ClassType (List (Tuple Ident (List TypeArgument)))
 
+
 -- | Type arguments may be either reference types or wildcards.
 data TypeArgument = ActualType RefType
 
 -- | A class is generic if it declares one or more type variables. These type variables are known
 --   as the type parameters of the class.
-data TypeParam = TypeParam Ident (List RefType)
+data TypeParam 
+    = TypeParam Ident (List RefType)
 
 -- | A primitive type is predefined by the Java programming language and named by its reserved keyword.
 data PrimType
@@ -50,6 +52,7 @@ data PrimType
     | ObjectT
     | DecimalT 
     | IntegerT
+    | StringT
     | LongT
     | IdT
     | BlobT
@@ -92,7 +95,18 @@ instance showType :: Show Type where
     show = genericShow 
 
 instance showPrimType :: Show PrimType where 
-    show = genericShow 
+    show BooleanT = "boolean"
+    show ObjectT = "object"
+    show DecimalT = "decimal"
+    show IntegerT = "integer"
+    show StringT = "string"
+    show LongT = "long"
+    show IdT = "id"
+    show BlobT = "blob"
+    show DateT = "date"
+    show DatetimeT = "datetime"
+    show TimeT = "time"
+    show DoubleT = "double"
 
 instance showLiteral :: Show Literal where 
     show = genericShow 

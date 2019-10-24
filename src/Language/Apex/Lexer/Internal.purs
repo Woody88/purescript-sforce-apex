@@ -41,7 +41,7 @@ instance readTokenT :: ReadToken Token where
         PC.try (IntegerTok             <<=: integerLiteral) <|>
         PC.try (StringTok              <<=: stringLiteral)  <|>
         PC.try (BoolTok                <<=: boolLiteral)    <|>
-        PC.try (Period                 <=: period     )     <|>
+        PC.try (Period                 <=:  period     )     <|>
         PC.try (KW_Override            <=: istring "override" ) <|>
         PC.try (KW_With_Share          <=: istring "with sharing" ) <|>
         PC.try (KW_Without_Share       <=: istring "without sharing") <|> 
@@ -54,6 +54,7 @@ instance readTokenT :: ReadToken Token where
         PC.try (KW_When                <=: istring "when") <|> 
         PC.try (KW_Abstract            <=: istring "abstract") <|> 
         PC.try (KW_Integer             <=: istring "integer") <|> 
+        PC.try (KW_String              <=: istring "string") <|>
         PC.try (KW_Assert              <=: istring "assert") <|> 
         PC.try (KW_Boolean             <=: istring "boolean") <|> 
         PC.try (KW_Break               <=: istring "break") <|> 
@@ -163,7 +164,7 @@ javaReservedNames =
     , "assert" ,"boolean" ,"break" ,"blob" ,"case" ,"catch" ,"class" ,"const" ,"continue" ,"when" ,"double" ,"do" ,"else" 
     , "enum" ,"extends" ,"final" ,"finally" ,"decimal" ,"for" ,"if" ,"implements" ,"import" ,"instanceof" ,"interface" ,"long" 
     , "new" ,"private" ,"protected" ,"public" ,"return" ,"static" ,"super" ,"switch" ,"this" ,"transient" ,"try" ,"void" ,"while" 
-    , "get" ,"set", "virtual", "global"
+    , "get" ,"set", "virtual", "global", "string"
     ]
 
     

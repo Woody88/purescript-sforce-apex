@@ -805,10 +805,11 @@ typeParams :: P (List TypeParam)
 typeParams = angles $ seplist1 typeParam comma
 
 typeParam :: P TypeParam
-typeParam = do
-    i  <- ident
-    rf <- lopt extends
-    pure $ TypeParam i rf
+typeParam = 
+    (do
+        i  <- ident
+        rf <- lopt extends
+        pure $ TypeParam i rf)
 
 typeArgs :: P (List TypeArgument)
 typeArgs = fix \_ -> do
@@ -835,11 +836,11 @@ refTypeList = seplist1 refType comma
 
 refType :: P RefType
 refType = fix \_ -> 
-    (do pt <- primType
+    PC.try (do 
+        pt <- primType
         l <- list1 arrBrackets
         let bs = fromMaybe mempty $ List.tail l 
-        pure $ foldl (\f _ -> ArrayType <<< RefType <<< f)
-                        (ArrayType <<< PrimType) bs pt) <|>
+        pure $ foldl (\f _ -> ArrayType <<< RefType <<< f) (ArrayType <<< PrimType) bs pt) <|>
     (do ct <- classType
         bs <- list arrBrackets
         pure $ foldl (\f _ -> ArrayType <<< RefType <<< f)
@@ -852,9 +853,11 @@ classType = fix \_ -> do
 
 classTypeSpec :: P (Tuple Ident (List TypeArgument))
 classTypeSpec = do
-    i   <- ident
+    i   <- PC.try primToIdent <|> ident
     tas <- lopt typeArgs
     pure $ Tuple i tas
+    where 
+        primToIdent = (Ident <<< show) <$> primType 
 
 type_ :: P Type
 type_ = PC.try (RefType <$> refType) <|> PrimType <$> primType
@@ -868,6 +871,7 @@ primType =
     tok KW_Object   *> pure ObjectT   <|>
     tok KW_Decimal  *> pure DecimalT  <|>
     tok KW_ID       *> pure IdT       <|>
+    tok KW_String   *> pure StringT       <|>
     tok KW_Integer  *> pure IntegerT  <|>
     tok KW_Long     *> pure LongT     <|>
     tok KW_Blob     *> pure BlobT     <|>
