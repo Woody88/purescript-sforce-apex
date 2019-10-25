@@ -305,7 +305,7 @@ varDecl = do
 varDeclId :: P VarDeclId 
 varDeclId = do 
     id <- ident
-    abs <- list arrBrackets
+    abs <- list arrBrackets   -- should probably remove this, there are now way to create array matrix in apex. I.e: String[][] 
     pure $ foldl (\f _ -> VarDeclArray <<< f) VarId abs id
 
 varInit :: P VarInit

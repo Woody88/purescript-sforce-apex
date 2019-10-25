@@ -11,5 +11,5 @@ public class CastingExample {
             Reports.add(a);
 
             CustomReport c = (CustomReport) Reports.get(0);
-      }
+       }
 }
