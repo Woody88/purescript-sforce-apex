@@ -37,8 +37,6 @@ data Token  =
     -- Identifiers
     | IdentTok String 
 
-    -- Property getter and Setter 
-    | KW_Get | KW_Set
     -- Operators
     | OpTok String
     | Op_Equal | Op_GThan | Op_LThan | Op_Bang | Op_Tilde | Op_Query | Op_Colon | Op_Equals | Op_LThanE | Op_GThanE | Op_BangE | Op_AAnd 

@@ -95,8 +95,6 @@ instance readTokenT :: ReadToken Token where
         PC.try (KW_Try                 <=: istring "try") <|> 
         PC.try (KW_Void                <=: istring "void") <|> 
         PC.try (KW_While               <=: istring "while") <|> 
-        PC.try (KW_Get                 <=: istring "get") <|> 
-        PC.try (KW_Set                 <=: istring "set") <|> 
         PC.try (Op_Equals              <=: PS.string "==")    <|>
         PC.try (Op_LThanE              <=: PS.string "<=")    <|>
         PC.try (Op_GThanE              <=: PS.string ">=")    <|>
@@ -164,7 +162,7 @@ javaReservedNames =
     , "assert" ,"boolean" ,"break" ,"blob" ,"case" ,"catch" ,"class" ,"const" ,"continue" ,"when" ,"double" ,"do" ,"else" 
     , "enum" ,"extends" ,"final" ,"finally" ,"decimal" ,"for" ,"if" ,"implements" ,"import" ,"instanceof" ,"interface" ,"long" 
     , "new" ,"private" ,"protected" ,"public" ,"return" ,"static" ,"super" ,"switch" ,"this" ,"transient" ,"try" ,"void" ,"while" 
-    , "get" ,"set", "virtual", "global", "string"
+    , "virtual", "global", "string"
     ]
 
     

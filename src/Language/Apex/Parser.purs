@@ -2,6 +2,7 @@ module Language.Apex.Parser where
 
 
 
+import Language.Apex.Syntax
 import Prelude
 
 import Control.Alt ((<|>))
@@ -15,13 +16,13 @@ import Data.Maybe (Maybe(..), isJust, fromMaybe, maybe)
 import Data.Newtype as Newtype
 import Data.Tuple (Tuple(..))
 import Language.Apex.Lexer (lexApex)
-import Language.Apex.Syntax
 import Language.Apex.Lexer.Types (L(..), Token(..))
 import Language.Apex.Syntax.Types (ClassType(..), Ident(..), Literal(..), Name(..), PrimType(..), RefType(..), Type(..), TypeArgument(..), TypeParam(..))
 import Text.Parsing.Parser (ParseState(..), Parser, ParseError, runParser, fail)
 import Text.Parsing.Parser.Combinators ((<?>))
 import Text.Parsing.Parser.Combinators as PC
-import Text.Parsing.Parser.Token as PT 
+import Text.Parsing.Parser.Token as PT
+
 type P = Parser (List (L Token))
 
 ------------- Top Level parsing -----------------
@@ -290,7 +291,7 @@ accessor = fix $ \_ -> do
     pure $ Accessor md acv vi
 
 accessorVar :: P AccessorVar
-accessorVar = (tok KW_Get *> pure Getter) <|> tok KW_Set *> pure Setter <?> "Unpexpected token at accessor position"
+accessorVar = (tok (IdentTok "get") *> pure Getter) <|> tok (IdentTok "set") *> pure Setter <?> "Unpexpected token at accessor position"
 
 varDecls :: P (List VarDecl)
 varDecls = fix $ \_ -> seplist1 varDecl comma 
