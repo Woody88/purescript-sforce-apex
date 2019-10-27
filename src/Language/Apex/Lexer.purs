@@ -10,7 +10,8 @@ import Text.Parsing.Parser (ParseError, runParser)
 import Text.Parsing.Parser.Combinators as PC
 import Text.Parsing.Parser.String as PS
 import Language.Apex.Lexer.Internal
-import Language.Apex.Lexer.Types (L, P, Token)
+import Language.Apex.Lexer.Types (P, Token)
+import Language.Types (L)
 
 lexApex :: String -> List.List (L Token)
 lexApex = runTokenizer

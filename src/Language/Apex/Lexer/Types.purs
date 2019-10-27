@@ -1,19 +1,12 @@
 module Language.Apex.Lexer.Types where 
 
-import Data.BigInt
 import Prelude
-
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
-import Data.Newtype (class Newtype)
+import Data.BigInt
 import Text.Parsing.Parser (Parser)
-import Text.Parsing.Parser.Pos (Position(..))
 
 type P = Parser String 
-
-data L a = L Pos a
-
-newtype Pos = Pos Position 
 
 data Token  = 
     -- Keywords
@@ -43,19 +36,8 @@ data Token  =
     | Op_OOr | Op_PPlus | Op_MMinus | Op_Plus | Op_Minus | Op_Star | Op_Slash | Op_And | Op_Or | Op_Caret | Op_Percent | Op_LShift | Op_PlusE 
     | Op_MinusE | Op_StarE | Op_SlashE | Op_AndE | Op_OrE | Op_CaretE | Op_PercentE | Op_LShiftE | Op_RShiftE | Op_RRShiftE | Op_AtSign
 
-derive instance newtypePos :: Newtype Pos _
 derive instance genericToken :: Generic Token _
 derive instance eqToken :: Eq Token 
-derive instance eqPos :: Eq Pos 
-
-derive instance genericL :: Generic (L a) _
-derive instance eqL :: Eq a => Eq (L a)
-
-instance showPos :: Show Pos where 
-    show (Pos (Position p)) = "(" <> show p.line <> "," <> show p.column <> ")"
-
-instance showL :: Show a => Show (L a) where 
-    show = genericShow
 
 instance showToken :: Show Token where 
     show = genericShow

@@ -7,10 +7,11 @@ import Data.List (List, someRec)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (wrap)
 import Data.String (drop, length, toLower)
-import Language.Apex.Lexer.Types (L(..), Token, P, Pos(..))
-import Text.Parsing.Parser (ParseState(..), ParserT(..), fail, position)
+import Language.Apex.Lexer.Types (Token, P)
+import Language.Types (L(..), Pos(..))
+import Text.Parsing.Parser (ParseState(..), fail, position)
 import Text.Parsing.Parser.Pos (updatePosString)
-import Text.Parsing.Parser.String (class StringLike, indexOf)
+import Text.Parsing.Parser.String (indexOf)
 
 
 -- | Match the specified string - case insensitive .
