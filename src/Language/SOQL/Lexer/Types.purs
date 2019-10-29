@@ -2,6 +2,7 @@ module Language.SOQL.Lexer.Types where
 
 import Prelude
 
+import Data.BigInt (BigInt)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Text.Parsing.Parser (Parser)
@@ -10,20 +11,21 @@ type P = Parser String
 
 data Token = 
     -- Reserved Keywords 
-    KW_And | KW_As | KW_Asc | KW_By | KW_Cube | KW_Desc | KW_Else | KW_Excludes  
-    | KW_First | KW_From | KW_Group | KW_Having | KW_In | KW_Includes | KW_Last | KW_Like 
-    | KW_Limit | KW_Not  | KW_Or | KW_Rollup | KW_Select | KW_Using 
+    KW_As | KW_Asc | KW_By | KW_Cube | KW_Desc | KW_Else 
+    | KW_First | KW_From | KW_Group | KW_Having  | KW_Last  
+    | KW_Limit | KW_Rollup | KW_Select | KW_Using 
     | KW_Where | KW_With | KW_For | KW_Update  
 
     -- Literals 
-    | IntegerTok Int | DoubleTok Number | CharTok Char | StringTok String | BoolTok Boolean | NullTok
+    | IntegerTok Int | LongTok BigInt | DoubleTok Number | StringTok String | BoolTok Boolean | NullTok
 
     -- Non Reserved Keyword 
     | Above | Above_or_below | At | Below | Category | Data | End | Offset | Group
     | Order | Reference | Scope | Tracking | Then | Typeof | View | Viewstat | When
 
     -- Comparison Operators
-    | Op_Eq | Op_BangE | Op_GThan | Op_LThan | Op_LThanE | Op_GThanE | Op_NotEq
+    | Op_Eq | Op_GThan | Op_LThan | Op_LThanE | Op_GThanE | Op_NotEq | Op_In | Op_NotIn
+    | Op_Not  | Op_Or | Op_Excludes | Op_Includes | Op_And | Op_Like
 
     -- Date Functions
     | Calendar_month | Calendar_quarter | Calendar_year | Day_in_month 
@@ -59,6 +61,8 @@ data Token =
     | Ident String 
 
 derive instance genericToken :: Generic Token _ 
+
+derive instance eqToken :: Eq Token 
 
 instance showToken :: Show Token where
     show = genericShow

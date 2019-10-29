@@ -3,14 +3,17 @@ module Language.SOQL.Lexer.Internal where
 import Prelude 
 import Control.Apply ((<*), (*>))
 import Control.Alternative ((<|>))
+import Data.BigInt as BigInt
 import Data.Array as Array
 import Data.List (toUnfoldable)
 import Data.String.CodeUnits (fromCharArray)
 import Data.Tuple (Tuple(..))
+import Data.Maybe (maybe)
 import Language.SOQL.Lexer.Types (P, Token(..))
 import Language.SOQL.Lexer.Utils (many1)
 import Language.Types (L)
 import Language.SOQL.Lexer.Utils ((<<=:), (<=:), istring)
+import Text.Parsing.Parser (fail)
 import Text.Parsing.Parser.Language (javaStyle)
 import Text.Parsing.Parser.Combinators (try, notFollowedBy, optional, choice)
 import Text.Parsing.Parser.String (string, char, satisfy)
@@ -19,6 +22,7 @@ import Unsafe.Coerce (unsafeCoerce)
 
 readToken :: P (L Token)
 readToken = 
+    try (LongTok                 <<=: longLiteral)              <|>
     try (DoubleTok               <<=: doubleLiteral)            <|>
     try (IntegerTok              <<=: integerLiteral)           <|>
     try (StringTok               <<=: stringLiteral)            <|>
@@ -112,54 +116,52 @@ readToken =
     try (View             <=:    istring "view"           ) <|>                   
     try (Viewstat         <=:    istring "viewstat"       ) <|>
     try (When             <=:    istring "when"           ) <|>
-    try (KW_And       <=: istring "and"     )    <|>   
     try (KW_Asc       <=: istring "asc"     )    <|>  
     try (KW_As        <=: istring "as"      )    <|>    
     try (KW_By        <=: istring "by"      )    <|>   
     try (KW_Cube      <=: istring "cube"    )    <|>   
     try (KW_Desc      <=: istring "desc"    )    <|>   
     try (KW_Else      <=: istring "else"    )    <|>   
-    try (KW_Excludes  <=: istring "excludes")    <|>   
     try (KW_First     <=: istring "first"   )    <|>   
     try (KW_From      <=: istring "from"    )    <|>   
     try (KW_Group     <=: istring "group"   )    <|>   
     try (KW_Having    <=: istring "having"  )    <|>   
-    try (KW_In        <=: istring "in"      )    <|>   
-    try (KW_Includes  <=: istring "includes")    <|>   
-    try (KW_Last      <=: istring "last"    )    <|>   
-    try (KW_Like      <=: istring "like"    )    <|>   
+    try (KW_Last      <=: istring "last"    )    <|>    
     try (KW_Limit     <=: istring "limit"   )    <|>   
-    try (KW_Not       <=: istring "not"     )    <|>    
-    try (KW_Or        <=: istring "or"      )    <|>   
     try (KW_Rollup    <=: istring "rollup"  )    <|>   
     try (KW_Select    <=: istring "select"  )    <|>   
     try (KW_Using     <=: istring "using"   )    <|>   
     try (KW_Where     <=: istring "where"   )    <|>   
     try (KW_With      <=: istring "with"    )    <|>   
     try (KW_For       <=: istring "for"     )    <|>   
-    try (KW_Update    <=: istring "update"  )    <|>   
-    try (KW_In        <=: istring "in"      )    <|>   
-    try (KW_Excludes  <=: istring "excludes")    <|>   
-    try (KW_Includes  <=: istring "includes")    <|>  
-    try (Op_NotEq               <=: notEqual)    <|>
-    try (Op_GThanE              <=: string ">=") <|>
-    try (Op_LThanE              <=: string "<=") <|>
-    try (OpenParen              <=: char '(')    <|>
-    try (CloseParen             <=: char ')')    <|>
-    try (OpenSquare             <=: char '[')    <|>
-    try (CloseSquare            <=: char ']')    <|>
-    try (SemiColon              <=: char ';')    <|>
-    try (Colon                  <=: char ':')    <|>
-    try (Comma                  <=: char ',')    <|>
-    try (Period                 <=: period  )    <|>
-    try (Plus                   <=: char '+')    <|>
-    try (Minus                  <=: char '-')    <|>
-    try (Asterisk               <=: char '*')    <|>
-    try (Slash                  <=: char '/')    <|>
-    try (Op_Eq                  <=: char '=')    <|> 
-    try (Op_GThan               <=: char '>')    <|>
-    try (Op_LThan               <=: char '<')    <|>
-    try (Ident                   <<=: javaLexer.identifier )
+    try (KW_Update    <=: istring "update"  )    <|> 
+    try (Op_Like      <=: istring "like"    )    <|>  
+    try (Op_And       <=: istring "and"     )    <|>      
+    try (Op_Or        <=: istring "or"      )    <|>     
+    try (Op_Excludes  <=: istring "excludes")    <|>   
+    try (Op_Includes  <=: istring "includes")    <|>  
+    try (Op_NotIn     <=: istring "not in"  )    <|>
+    try (Op_In        <=: istring "in"      )    <|>
+    try (Op_NotEq     <=: notEqual)       <|>
+    try (Op_GThanE    <=: string ">=")    <|>
+    try (Op_LThanE    <=: string "<=")    <|>
+    try (Op_Not       <=: istring "not")  <|>    
+    try (OpenParen    <=: char '(')       <|>
+    try (CloseParen   <=: char ')')       <|>
+    try (OpenSquare   <=: char '[')       <|>
+    try (CloseSquare  <=: char ']')       <|>
+    try (SemiColon    <=: char ';')       <|>
+    try (Colon        <=: char ':')       <|>
+    try (Comma        <=: char ',')       <|>
+    try (Period       <=: period  )       <|>
+    try (Plus         <=: char '+')       <|>
+    try (Minus        <=: char '-')       <|>
+    try (Asterisk     <=: char '*')       <|>
+    try (Slash        <=: char '/')       <|>
+    try (Op_Eq        <=: char '=')       <|> 
+    try (Op_GThan     <=: char '>')       <|>
+    try (Op_LThan     <=: char '<')       <|>
+    try (Ident        <<=: javaLexer.identifier )
     where 
         notEqual = (string "<>" <|> string "!=")
         period   = (char '.' <* notFollowedBy digit)
@@ -173,6 +175,14 @@ javaLexer = makeTokenParser javaLanguage
 javaLanguage :: LanguageDef
 javaLanguage = javaStyle
 
+longLiteral :: P BigInt.BigInt 
+longLiteral = do 
+    i <- zero <|> digitsStr
+    _ <- integerTypeSuffix
+    maybe (fail "Could not read long integer") pure $ BigInt.fromString i 
+    where 
+        zero = char '0' *> pure "0"
+            
 integerLiteral :: P Int 
 integerLiteral = do 
     x <- decimalIntegerLiteral  <* notFollowedBy (char '.')

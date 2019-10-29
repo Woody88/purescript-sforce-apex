@@ -1,6 +1,7 @@
 module Language.SOQL.Syntax where 
 
 import Prelude
+import Data.BigInt (BigInt)
 import Data.List (List)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
@@ -8,9 +9,11 @@ import Data.Generic.Rep.Show (genericShow)
 
 newtype Name = Name String 
 
-data Literal 
+data Value 
     = String String 
-    | Number Number 
+    | Double Number 
+    | Integer Int
+    | Long BigInt
     | Date String 
     | Datetime String 
     | Boolean Boolean 
@@ -29,6 +32,8 @@ data CompirasonOperator
     | GREATER 
     | LT
     | GT 
+    | LTE 
+    | GTE 
     | LIKE
     | IN
     | NIN 
@@ -49,13 +54,14 @@ data DateFormula
 
 type FieldOrderByList = List Name 
 
-data FieldExpr = FieldExpr Name CompirasonOperator Literal 
+data FieldExpr = FieldExpr Name CompirasonOperator Value 
 
 
 derive instance genericDateformula :: Generic DateFormula _ 
 derive instance genericCompirasonOperator :: Generic CompirasonOperator _ 
-derive instance genericLiteral :: Generic Literal _ 
+derive instance genericValue :: Generic Value _ 
 derive instance genericName :: Generic Name _ 
+derive instance genericFieldExpr :: Generic FieldExpr _ 
 
 instance showDateformula :: Show DateFormula where 
     show = genericShow 
@@ -63,8 +69,11 @@ instance showDateformula :: Show DateFormula where
 instance showCompirasonOperator :: Show CompirasonOperator where 
     show = genericShow 
     
-instance showLiteral :: Show Literal where 
+instance showValue :: Show Value where 
     show = genericShow 
 
 instance showName :: Show Name where 
+    show = genericShow 
+
+instance showFieldExpr :: Show FieldExpr where 
     show = genericShow 

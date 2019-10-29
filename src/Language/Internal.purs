@@ -1,12 +1,14 @@
 module Language.Internal where 
 
 import Prelude 
+import Control.Alt ((<|>))
 import Control.Monad.State (gets, modify_)
-import Data.List (List, uncons)
+import Control.Monad.Rec.Class (class MonadRec)
+import Data.List (List, (:), uncons, singleton, someRec)
 import Data.Newtype (unwrap)
 import Data.Maybe (Maybe(..), isJust)
 import Language.Types (L(..))
-import Text.Parsing.Parser.Combinators (optionMaybe)
+import Text.Parsing.Parser.Combinators (optionMaybe, try, option)
 import Text.Parsing.Parser (ParseState(..), ParserT, fail)
 
 langToken :: forall m s a t. Monad m => Show t => (t -> Maybe a) -> ParserT (List (L t)) m a
@@ -45,3 +47,22 @@ lopt p = do
 
 empty :: forall m s a. Monad m => ParserT s m Unit
 empty = pure unit
+
+seplist :: forall m s a sep. Monad m => ParserT s m a -> ParserT s m sep -> ParserT s m (List a)
+seplist p sep = option mempty $ seplist1 p sep
+
+seplist1 :: forall m s a sep. Monad m => ParserT s m a -> ParserT s m sep -> ParserT s m (List a)
+seplist1 p sep = do 
+    a <- p
+    try (loopList a) <|> (pure $ singleton a)
+    where 
+        loopList a' = do 
+            _ <- sep
+            as <- seplist1 p sep
+            pure (a':as)
+
+list :: forall m s a. Monad m => MonadRec m => ParserT s m a -> ParserT s m (List a)
+list = option mempty <<< list1
+
+list1 :: forall m s a. Monad m => MonadRec m => ParserT s m a -> ParserT s m (List a)
+list1 = someRec

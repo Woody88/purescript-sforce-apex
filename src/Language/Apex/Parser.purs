@@ -18,7 +18,7 @@ import Data.Tuple (Tuple(..))
 import Language.Apex.Lexer (lexApex)
 import Language.Apex.Lexer.Types (Token(..))
 import Language.Types (L(..))
-import Language.Internal (langToken, optMaybe, empty, bopt, lopt, tok)
+import Language.Internal (langToken, optMaybe, empty, bopt, lopt, tok, seplist, seplist1, list, list1)
 import Language.Apex.Syntax.Types (ClassType(..), Ident(..), Literal(..), Name(..), PrimType(..), RefType(..), Type(..), TypeArgument(..), TypeParam(..))
 import Text.Parsing.Parser (ParseState(..), Parser, ParseError, runParser, fail)
 import Text.Parsing.Parser.Combinators ((<?>))
@@ -954,25 +954,6 @@ infixOp =
     tok Op_BangE  *> pure NotEq 
 
 ----------------- Utils --------------------
-
-seplist :: forall a sep. P a -> P sep -> P (List a)
-seplist p sep = PC.option mempty $ seplist1 p sep
-
-seplist1 :: forall a sep. P a -> P sep -> P (List a)
-seplist1 p sep = do 
-    a <- p
-    PC.try (loopList a) <|> (pure $ List.singleton a)
-    where 
-        loopList a' = do 
-            _ <- sep
-            as <- seplist1 p sep
-            pure (a':as)
-
-list ::  forall a. P a -> P (List a)
-list = PC.option mempty <<< list1
-
-list1 :: forall a. P a -> P (List a)
-list1 = List.someRec
 
 endSemi :: forall a. P a -> P a
 endSemi p = p >>= \a -> semiColon *> pure a
