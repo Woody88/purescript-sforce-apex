@@ -1013,17 +1013,8 @@ javaToken test =  token posT showT testT
         posT  _ (L p _) _ = Newtype.unwrap p
         testT (L _ t) = test t
 
--- javaToken :: forall a. (Token -> Maybe a) -> P a
--- javaToken f = do
---     (L _ t) <- PT.token (\(L pos _) -> Newtype.unwrap pos)
---     p <- position
---     maybe (fail $ "error parsing toking: " <> show t <> ": " <> show p) pure $ f t
-
 tok :: Token -> P Unit 
 tok t = javaToken (\r -> if r == t then Just unit else Nothing)
-
--- tok :: Token -> P Unit
--- tok t = javaToken (\r -> if r == t then Just unit else Nothing)
 
 optMaybe :: forall a. P a -> P (Maybe a)
 optMaybe = PC.optionMaybe 
