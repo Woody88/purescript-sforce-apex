@@ -17,7 +17,8 @@ data Token =
     | KW_Where | KW_With | KW_For | KW_Update  
 
     -- Literals 
-    | IntegerTok Int | LongTok BigInt | DoubleTok Number | StringTok String | BoolTok Boolean | NullTok
+    | IntegerTok Int | LongTok BigInt | DoubleTok Number | StringTok String | BoolTok Boolean 
+    | DateTok String | DatetimeTok String | NullTok 
 
     -- Non Reserved Keyword 
     | Above | Above_or_below | At | Below | Category | Data | End | Offset | Group

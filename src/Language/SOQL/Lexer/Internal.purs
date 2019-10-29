@@ -8,6 +8,7 @@ import Data.Array as Array
 import Data.List (toUnfoldable)
 import Data.String.CodeUnits (fromCharArray)
 import Data.Tuple (Tuple(..))
+import Data.Traversable (traverse, sequence)
 import Data.Maybe (maybe)
 import Language.SOQL.Lexer.Types (P, Token(..))
 import Language.SOQL.Lexer.Utils (many1)
@@ -22,6 +23,7 @@ import Unsafe.Coerce (unsafeCoerce)
 
 readToken :: P (L Token)
 readToken = 
+    try (DateTok                 <<=: dateLiteral)              <|>
     try (LongTok                 <<=: longLiteral)              <|>
     try (DoubleTok               <<=: doubleLiteral)            <|>
     try (IntegerTok              <<=: integerLiteral)           <|>
@@ -190,6 +192,16 @@ integerLiteral = do
 
 doubleLiteral :: P Number 
 doubleLiteral = javaLexer.float
+
+dateLiteral :: P String 
+dateLiteral = do 
+    year  <- sequence $ [digit, digit, digit, digit]
+    dash1 <- sequence $ [char '-']
+    month <- sequence $ [digit, digit]
+    dash2 <- sequence $ [char '-']
+    day   <- sequence $ [digit, digit] 
+    
+    pure $ fromCharArray $ Array.concat [year, dash1, month, dash2, day]
 
 stringLiteral :: P String
 stringLiteral = do 
