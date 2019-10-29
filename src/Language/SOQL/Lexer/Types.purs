@@ -2,7 +2,6 @@ module Language.SOQL.Lexer.Types where
 
 import Prelude
 
-import Data.BigInt (BigInt)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Text.Parsing.Parser (Parser)
@@ -13,11 +12,11 @@ data Token =
     -- Reserved Keywords 
     KW_And | KW_As | KW_Asc | KW_By | KW_Cube | KW_Desc | KW_Else | KW_Excludes  
     | KW_First | KW_From | KW_Group | KW_Having | KW_In | KW_Includes | KW_Last | KW_Like 
-    | KW_Limit | KW_Not | KW_Null | KW_Nulls | KW_Or | KW_Rollup | KW_Select | KW_Using 
+    | KW_Limit | KW_Not  | KW_Or | KW_Rollup | KW_Select | KW_Using 
     | KW_Where | KW_With | KW_For | KW_Update  
 
     -- Literals 
-    | IntegerTok Int | LongTok BigInt | DoubleTok Number | CharTok Char | StringTok String | BoolTok Boolean 
+    | IntegerTok Int | DoubleTok Number | CharTok Char | StringTok String | BoolTok Boolean | NullTok
 
     -- Non Reserved Keyword 
     | Above | Above_or_below | At | Below | Category | Data | End | Offset | Group
@@ -57,7 +56,7 @@ data Token =
     | Next_n_fiscal_years Int | Last_n_fiscal_years Int | N_fiscal_years_ago Int
 
     -- Identifiers
-    | Name String 
+    | Ident String 
 
 derive instance genericToken :: Generic Token _ 
 

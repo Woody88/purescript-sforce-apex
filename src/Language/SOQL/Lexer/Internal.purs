@@ -19,11 +19,11 @@ import Unsafe.Coerce (unsafeCoerce)
 
 readToken :: P (L Token)
 readToken = 
-    -- try (LongTok                 <<=: longLiteral)              <|>
     try (DoubleTok               <<=: doubleLiteral)            <|>
     try (IntegerTok              <<=: integerLiteral)           <|>
     try (StringTok               <<=: stringLiteral)            <|>
     try (BoolTok                 <<=: boolLiteral)              <|>
+    try (NullTok                 <=:  nullLiteral   )           <|>   
     try (Next_n_days             <<=: strNDate "next_n_days" ) <|> 
     try (Last_n_days             <<=: strNDate "last_n_days" ) <|> 
     try (N_days_ago              <<=: strNDate "n_days_ago" ) <|> 
@@ -129,9 +129,7 @@ readToken =
     try (KW_Last      <=: istring "last"    )    <|>   
     try (KW_Like      <=: istring "like"    )    <|>   
     try (KW_Limit     <=: istring "limit"   )    <|>   
-    try (KW_Not       <=: istring "not"     )    <|>   
-    try (KW_Null      <=: istring "null"    )    <|>   
-    try (KW_Nulls     <=: istring "nulls"   )    <|>   
+    try (KW_Not       <=: istring "not"     )    <|>    
     try (KW_Or        <=: istring "or"      )    <|>   
     try (KW_Rollup    <=: istring "rollup"  )    <|>   
     try (KW_Select    <=: istring "select"  )    <|>   
@@ -161,11 +159,13 @@ readToken =
     try (Op_Eq                  <=: char '=')    <|> 
     try (Op_GThan               <=: char '>')    <|>
     try (Op_LThan               <=: char '<')    <|>
-    try (Name                   <<=: javaLexer.identifier )
+    try (Ident                   <<=: javaLexer.identifier )
     where 
         notEqual = (string "<>" <|> string "!=")
         period   = (char '.' <* notFollowedBy digit)
-        strNDate fnName = istring fnName *> digits
+        strNDate fnName = istring fnName *> colon *> digits
+        nullLiteral = (istring "nulls" <|> istring "null")
+        colon = javaLexer.colon
 
 javaLexer :: TokenParser
 javaLexer = makeTokenParser javaLanguage
@@ -174,23 +174,12 @@ javaLanguage :: LanguageDef
 javaLanguage = javaStyle
 
 integerLiteral :: P Int 
--- integerLiteral = javaLexer.integer 
 integerLiteral = do 
     x <- decimalIntegerLiteral  <* notFollowedBy (char '.')
     pure $ x
 
 doubleLiteral :: P Number 
 doubleLiteral = javaLexer.float
--- doubleLiteral = unsafeCoerce <$> PC.choice $ map PC.try 
---     [ (digitsStr <> dot <> digitsStr) ]
-
--- longLiteral :: P BigInt.BigInt 
--- longLiteral = do 
---     i <- zero <|> digitsStr
---     _ <- integerTypeSuffix
---     maybe (fail "Could not read long integer") pure $ BigInt.fromString i 
---     where 
---         zero = PS.char '0' *> pure "0"
 
 stringLiteral :: P String
 stringLiteral = do 
@@ -235,8 +224,3 @@ digitsStr = many1 digit >>= (pure <<< fromCharArray <<< toUnfoldable)
 
 integerTypeSuffix :: P Char 
 integerTypeSuffix = char 'l' <|> char 'L'
-
-
--- PC.try (Op_And                 <=: PS.char '&')               <|>
---     PC.try (Op_Or                  <=: PS.char '|')               <|>
---     PC.try (Op_Caret               <=: PS.char '^')               <|>
