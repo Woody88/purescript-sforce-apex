@@ -1,1 +1,1 @@
-module Language.SOQL.Parser where 
+module Language.SOQL.Parser where

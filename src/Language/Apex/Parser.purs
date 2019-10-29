@@ -18,6 +18,7 @@ import Data.Tuple (Tuple(..))
 import Language.Apex.Lexer (lexApex)
 import Language.Apex.Lexer.Types (Token(..))
 import Language.Types (L(..))
+import Language.Internal (langToken, optMaybe, empty, bopt, lopt, tok)
 import Language.Apex.Syntax.Types (ClassType(..), Ident(..), Literal(..), Name(..), PrimType(..), RefType(..), Type(..), TypeArgument(..), TypeParam(..))
 import Text.Parsing.Parser (ParseState(..), Parser, ParseError, runParser, fail)
 import Text.Parsing.Parser.Combinators ((<?>))
@@ -38,7 +39,7 @@ compilationUnit = do
     pure $ CompilationUnit (List.catMaybes tds)
 
 literal :: P Literal
-literal = javaToken $ \t -> case t of
+literal = langToken $ \t -> case t of
     IntegerTok i -> Just (Integer i)
     LongTok    l -> Just (Long l)
     DoubleTok  d -> Just (Double d)
@@ -51,7 +52,7 @@ name :: P Name
 name = Name <$> seplist1 ident period
 
 ident :: P Ident
-ident = javaToken $ \t -> case t of
+ident = langToken $ \t -> case t of
     IdentTok s -> Just $ Ident s
     _ -> Nothing
 
@@ -1006,27 +1007,12 @@ token nextpos showt test = do
                 
                 pure x
 
-javaToken :: forall a. (Token -> Maybe a) -> P a
-javaToken test =  token posT showT testT
-    where 
-        showT (L _ t) = show t
-        posT  _ (L p _) _ = Newtype.unwrap p
-        testT (L _ t) = test t
+-- langToken :: forall a. (Token -> Maybe a) -> P a
+-- langToken test =  token posT showT testT
+--     where 
+--         showT (L _ t) = show t
+--         posT  _ (L p _) _ = Newtype.unwrap p
+--         testT (L _ t) = test t
 
-tok :: Token -> P Unit 
-tok t = javaToken (\r -> if r == t then Just unit else Nothing)
-
-optMaybe :: forall a. P a -> P (Maybe a)
-optMaybe = PC.optionMaybe 
-
-bopt :: forall a. P a -> P Boolean
-bopt p = optMaybe p >>= \ma -> pure $ isJust ma 
-
-lopt :: forall a. P (List a) -> P (List a)
-lopt p = do mas <- optMaybe p
-            case mas of
-             Nothing -> pure mempty
-             Just as -> pure as
-
-empty :: P Unit
-empty = pure unit
+-- tok :: Token -> P Unit 
+-- tok t = langToken (\r -> if r == t then Just unit else Nothing)
