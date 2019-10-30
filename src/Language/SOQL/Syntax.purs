@@ -2,9 +2,10 @@ module Language.SOQL.Syntax where
 
 import Prelude
 import Data.BigInt (BigInt)
-import Data.List (List)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
+import Data.List (List)
+import Data.Maybe (Maybe)
 
 
 data Name 
@@ -60,25 +61,33 @@ data FieldExpr = FieldExpr Name CompirasonOperator Value
 
 data SetExpr = SetExpr Name CompirasonOperator (List Value) 
 
+data LogicalExpr = LogicalExpr FieldExpr LogicalOperator (Maybe FieldExpr)
+
 derive instance genericDateformula :: Generic DateFormula _ 
 derive instance genericCompirasonOperator :: Generic CompirasonOperator _ 
+derive instance genericLogicalOperator :: Generic LogicalOperator _ 
 derive instance genericValue :: Generic Value _ 
 derive instance genericName :: Generic Name _ 
 derive instance genericFieldExpr :: Generic FieldExpr _ 
 derive instance genericSetExpr :: Generic SetExpr _ 
+derive instance genericLogicalExpr :: Generic LogicalExpr _ 
 
 derive instance eqDateformula :: Eq DateFormula 
 derive instance eqCompirasonOperator :: Eq CompirasonOperator 
+derive instance eqLogicalOperator :: Eq LogicalOperator 
 derive instance eqValue :: Eq Value 
 derive instance eqName :: Eq Name 
 derive instance eqFieldExpr :: Eq FieldExpr 
 derive instance eqSetExpr :: Eq SetExpr 
-
+derive instance eqLogicalExpr :: Eq LogicalExpr 
 
 instance showDateformula :: Show DateFormula where 
     show = genericShow 
 
 instance showCompirasonOperator :: Show CompirasonOperator where 
+    show = genericShow 
+
+instance showLogicalOperator :: Show LogicalOperator where 
     show = genericShow 
     
 instance showValue :: Show Value where 
@@ -92,4 +101,7 @@ instance showFieldExpr :: Show FieldExpr where
     show = genericShow 
 
 instance showSetExpr:: Show SetExpr where 
+    show = genericShow 
+
+instance showLogicalExpr:: Show LogicalExpr where 
     show = genericShow 

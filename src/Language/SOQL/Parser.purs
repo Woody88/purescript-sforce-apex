@@ -1,23 +1,36 @@
 module Language.SOQL.Parser where
 
-import Prelude (Unit, ($), (<$>), (<*>))
+import Prelude (Unit, ($), (<$>), (<*>), bind, pure)
 import Control.Applicative ((<*))
 import Control.Alt ((<|>))
 import Data.Either (Either)
 import Data.List (List)
 import Data.Maybe (Maybe(..))
-import Language.Internal (langToken, tok, seplist1)
+import Language.Internal (langToken, tok, seplist1, lopt, optMaybe)
 import Language.Types (L)
 import Language.SOQL.Lexer (lexSOQL)
 import Language.SOQL.Lexer.Types (Token(..))
 import Language.SOQL.Syntax 
 import Text.Parsing.Parser (Parser, ParseError, runParser)
-import Text.Parsing.Parser.Combinators ((<?>), try, notFollowedBy)
+import Text.Parsing.Parser.Combinators ((<?>), try, notFollowedBy, between)
 
 type P = Parser (List (L Token))
 
 parse :: forall a. String -> P a ->  Either ParseError a 
 parse s p = runParser (lexSOQL s) p
+
+logicalExpr :: P LogicalExpr 
+logicalExpr = 
+    notCase <|>
+    (LogicalExpr <$> fieldExpr <*> loperator <*> optMaybe fieldExpr)
+    where 
+        notCase = do 
+            lop <- loperator
+            fexp <- fieldExpr
+            pure $ LogicalExpr fexp lop Nothing
+
+setExpr :: P SetExpr 
+setExpr = SetExpr <$> name <*> coperator <*> parens (seplist1 value comma)
 
 fieldExpr :: P FieldExpr 
 fieldExpr = FieldExpr <$> name <*> coperator <*> value 
@@ -36,6 +49,9 @@ comma = tok Comma
 
 period :: P Unit 
 period = tok Period 
+
+parens :: forall a. P a -> P a 
+parens = between (tok OpenParen) (tok CloseParen)
 
 value :: P Value 
 value = dateform <|> value'
