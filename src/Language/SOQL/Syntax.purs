@@ -63,6 +63,12 @@ derive instance genericValue :: Generic Value _
 derive instance genericName :: Generic Name _ 
 derive instance genericFieldExpr :: Generic FieldExpr _ 
 
+derive instance eqDateformula :: Eq DateFormula 
+derive instance eqCompirasonOperator :: Eq CompirasonOperator 
+derive instance eqValue :: Eq Value 
+derive instance eqName :: Eq Name 
+derive instance eqFieldExpr :: Eq FieldExpr 
+
 instance showDateformula :: Show DateFormula where 
     show = genericShow 
 

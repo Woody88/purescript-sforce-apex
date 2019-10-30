@@ -2,15 +2,20 @@ module Language.SOQL.Parser where
 
 import Prelude (Unit, ($), (<$>), (<*>))
 import Control.Alt ((<|>))
+import Data.Either (Either)
 import Data.List (List)
 import Data.Maybe (Maybe(..))
 import Language.Internal (langToken, tok, seplist1)
 import Language.Types (L)
+import Language.SOQL.Lexer (lexSOQL)
 import Language.SOQL.Lexer.Types (Token(..))
 import Language.SOQL.Syntax 
-import Text.Parsing.Parser (Parser)
+import Text.Parsing.Parser (Parser, ParseError, runParser)
 
 type P = Parser (List (L Token))
+
+parse :: forall a. String -> P a ->  Either ParseError a 
+parse s p = runParser (lexSOQL s) p
 
 fieldExpr :: P FieldExpr 
 fieldExpr = FieldExpr <$> name <*> coperator <*> value 

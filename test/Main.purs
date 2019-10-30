@@ -17,6 +17,7 @@ import Test.Spec (pending, describe, it)
 import Test.Spec.Assertions (shouldEqual, fail)
 import Test.Spec.Reporter.Console (consoleReporter)
 import Test.Spec.Runner (runSpec)
+import Test.SOQL as SOQL 
 import Test.Utils (getApexFileNames, readApexFile)
 import Text.Parsing.Parser (parseErrorMessage)
 
@@ -26,28 +27,13 @@ main = launchAff_ $ do
   fileContents <- traverse readApexFile filenames
   let files = Array.zip filenames fileContents
   runSpec [consoleReporter] do
+    _ <- SOQL.spec
     describe "Parses Apex" do
       foldM (\a b -> pure a *> runTest b) unit files
   where 
     runTest (Tuple filename filecontent) = 
       it filename do 
         testCase filecontent true
-
--- test2 b a =
---     it ("1." <> show a) do
---       shouldEqual true a
-
-        -- it "awesome" do
-      --   let isAwesome = true
-      --   -- isAwesome `shouldEqual` true
-      --   traverse (shouldEqual true) [true, true, true]
-
-  -- describe "Apex File" do
-  --   it "all apex files" do
-  --     liftEffect $ log "Hello"
-  --     files <- getApexFileNames >>= traverse readApexFile
-  --     liftEffect (log $ "[DEBUG]" <> show files)
-
 
 testCase apexFile expected = do 
   case parseCompilationUnit apexFile of 
