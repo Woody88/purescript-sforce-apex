@@ -1,6 +1,7 @@
 module Language.SOQL.Parser where
 
 import Prelude (Unit, ($), (<$>), (<*>))
+import Control.Applicative ((<*))
 import Control.Alt ((<|>))
 import Data.Either (Either)
 import Data.List (List)
@@ -11,6 +12,7 @@ import Language.SOQL.Lexer (lexSOQL)
 import Language.SOQL.Lexer.Types (Token(..))
 import Language.SOQL.Syntax 
 import Text.Parsing.Parser (Parser, ParseError, runParser)
+import Text.Parsing.Parser.Combinators ((<?>), try, notFollowedBy)
 
 type P = Parser (List (L Token))
 
@@ -19,6 +21,9 @@ parse s p = runParser (lexSOQL s) p
 
 fieldExpr :: P FieldExpr 
 fieldExpr = FieldExpr <$> name <*> coperator <*> value 
+
+valueList :: P (List Value)
+valueList = seplist1 value comma
 
 fieldList :: P (List Name)
 fieldList = seplist1 field comma 
@@ -29,18 +34,23 @@ field = name
 comma :: P Unit 
 comma = tok Comma  
 
+period :: P Unit 
+period = tok Period 
+
 value :: P Value 
 value = dateform <|> value'
     where 
         dateform = DateFormula <$> dateformula
         value' = langToken $ \t -> case t of
-            IntegerTok i -> Just $ Integer i 
-            LongTok l    -> Just $ Long l 
-            DoubleTok n  -> Just $ Double n
-            StringTok s  -> Just $ String s
-            BoolTok b    -> Just $ Boolean b 
-            NullTok      -> Just $ Null 
-            _            -> Nothing 
+            IntegerTok i  -> Just $ Integer i 
+            LongTok l     -> Just $ Long l 
+            DoubleTok n   -> Just $ Double n
+            DateTok d     -> Just $ Date d 
+            DatetimeTok d -> Just $ Datetime d
+            StringTok s   -> Just $ String s
+            BoolTok b     -> Just $ Boolean b 
+            NullTok       -> Just $ Null 
+            _             -> Nothing 
 
 loperator :: P LogicalOperator 
 loperator = langToken $ \t -> case t of
@@ -65,7 +75,13 @@ coperator = langToken $ \t -> case t of
     _           -> Nothing 
 
 name :: P Name 
-name = langToken $ \t -> case t of
+name = try (ident <* notFollowedBy period) <|>  refName <?> "name"
+
+refName :: P Name 
+refName = Ref <$> seplist1 ident period 
+
+ident :: P Name 
+ident = langToken $ \t -> case t of
     Ident s -> Just $ Name s
     _ -> Nothing
 

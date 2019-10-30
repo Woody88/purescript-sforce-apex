@@ -7,7 +7,9 @@ import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 
 
-newtype Name = Name String 
+data Name 
+    = Name String 
+    | Ref (List Name) 
 
 data Value 
     = String String 
@@ -56,18 +58,22 @@ type FieldOrderByList = List Name
 
 data FieldExpr = FieldExpr Name CompirasonOperator Value 
 
+data SetExpr = SetExpr Name CompirasonOperator (List Value) 
 
 derive instance genericDateformula :: Generic DateFormula _ 
 derive instance genericCompirasonOperator :: Generic CompirasonOperator _ 
 derive instance genericValue :: Generic Value _ 
 derive instance genericName :: Generic Name _ 
 derive instance genericFieldExpr :: Generic FieldExpr _ 
+derive instance genericSetExpr :: Generic SetExpr _ 
 
 derive instance eqDateformula :: Eq DateFormula 
 derive instance eqCompirasonOperator :: Eq CompirasonOperator 
 derive instance eqValue :: Eq Value 
 derive instance eqName :: Eq Name 
 derive instance eqFieldExpr :: Eq FieldExpr 
+derive instance eqSetExpr :: Eq SetExpr 
+
 
 instance showDateformula :: Show DateFormula where 
     show = genericShow 
@@ -79,7 +85,11 @@ instance showValue :: Show Value where
     show = genericShow 
 
 instance showName :: Show Name where 
-    show = genericShow 
+    show (Name s) = "(Name " <> s <> ")"
+    show x = genericShow x
 
 instance showFieldExpr :: Show FieldExpr where 
+    show = genericShow 
+
+instance showSetExpr:: Show SetExpr where 
     show = genericShow 
