@@ -16,13 +16,14 @@ import Language.Types (L)
 import Language.SOQL.Lexer.Utils ((<<=:), (<=:), istring)
 import Text.Parsing.Parser (fail)
 import Text.Parsing.Parser.Language (javaStyle)
-import Text.Parsing.Parser.Combinators (try, notFollowedBy, optional, choice)
+import Text.Parsing.Parser.Combinators (try, notFollowedBy, option, optional, choice)
 import Text.Parsing.Parser.String (string, char, satisfy)
 import Text.Parsing.Parser.Token 
 import Unsafe.Coerce (unsafeCoerce)
 
 readToken :: P (L Token)
 readToken = 
+    try (DatetimeTok             <<=: datetimeLiteral)          <|>
     try (DateTok                 <<=: dateLiteral)              <|>
     try (LongTok                 <<=: longLiteral)              <|>
     try (DoubleTok               <<=: doubleLiteral)            <|>
@@ -193,6 +194,8 @@ integerLiteral = do
 doubleLiteral :: P Number 
 doubleLiteral = javaLexer.float
 
+-- https://developer.salesforce.com/docs/atlas.en-us.soql_sosl.meta/soql_sosl/sforce_api_calls_soql_select_dateformats.htm
+-- Format: YYYY-MM-DD
 dateLiteral :: P String 
 dateLiteral = do 
     year  <- sequence $ [digit, digit, digit, digit]
@@ -202,6 +205,24 @@ dateLiteral = do
     day   <- sequence $ [digit, digit] 
     
     pure $ fromCharArray $ Array.concat [year, dash1, month, dash2, day]
+
+-- https://developer.salesforce.com/docs/atlas.en-us.soql_sosl.meta/soql_sosl/sforce_api_calls_soql_select_dateformats.htm
+-- Format: YYYY-MM-DDThh:mm:ssZ | YYYY-MM-DDThh:mm:ss+hh:mm | YYYY-MM-DDThh:mm:ss-hh:mm 
+datetimeLiteral :: P String 
+datetimeLiteral = do 
+    date       <- dateLiteral 
+    t          <- sequence $ [char 'T']
+    hour       <- sequence $ [digit, digit]
+    c1         <- sequence $ [char ':']
+    mins       <- sequence $ [digit, digit]
+    c2         <- sequence $ [char ':']
+    secs       <- sequence $ [digit, digit]
+    zuluOffset <- sequence [char 'Z'] <|>  sequence [char '+'] <|>  sequence [char '-']
+    ofhour     <- option [] $ sequence $ [digit, digit]
+    c3         <- option [] $ sequence $ [char ':']
+    ofmins     <- option [] $ sequence $ [digit, digit]
+
+    pure $ date <> (fromCharArray $ Array.concat [t, hour, c1, mins, c2, secs, zuluOffset, ofhour, c3, ofmins])
 
 stringLiteral :: P String
 stringLiteral = do 
