@@ -13,7 +13,7 @@ import Effect.Class (liftEffect)
 import Effect.Aff.Class (liftAff)
 import Effect.Console (logShow, log)
 import Language.Apex.Parser (parseCompilationUnit)
-import Test.Spec (pending, describe, it)
+import Test.Spec (describe, it)
 import Test.Spec.Assertions (shouldEqual, fail)
 import Test.Spec.Reporter.Console (consoleReporter)
 import Test.Spec.Runner (runSpec)
@@ -27,7 +27,7 @@ main = launchAff_ $ do
   fileContents <- traverse readApexFile filenames
   let files = Array.zip filenames fileContents
   runSpec [consoleReporter] do
-    _ <- SOQL.spec
+    SOQL.spec
     describe "Parses Apex" do
       foldM (\a b -> pure a *> runTest b) unit files
   where 

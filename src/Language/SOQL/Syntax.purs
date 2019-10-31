@@ -63,6 +63,10 @@ data SetExpr = SetExpr Name CompirasonOperator (List Value)
 
 data LogicalExpr = LogicalExpr FieldExpr LogicalOperator (Maybe FieldExpr)
 
+data ConditionExpr = LogicExpr LogicalExpr | SimplExpr SimpleExpr 
+
+data SimpleExpr = CondExpr ConditionExpr | FldExpr FieldExpr | SExpr SetExpr 
+
 derive instance genericDateformula :: Generic DateFormula _ 
 derive instance genericCompirasonOperator :: Generic CompirasonOperator _ 
 derive instance genericLogicalOperator :: Generic LogicalOperator _ 
@@ -71,6 +75,8 @@ derive instance genericName :: Generic Name _
 derive instance genericFieldExpr :: Generic FieldExpr _ 
 derive instance genericSetExpr :: Generic SetExpr _ 
 derive instance genericLogicalExpr :: Generic LogicalExpr _ 
+derive instance genericConditionExpr :: Generic ConditionExpr _ 
+derive instance genericSimpleExpr :: Generic SimpleExpr _ 
 
 derive instance eqDateformula :: Eq DateFormula 
 derive instance eqCompirasonOperator :: Eq CompirasonOperator 
@@ -80,6 +86,8 @@ derive instance eqName :: Eq Name
 derive instance eqFieldExpr :: Eq FieldExpr 
 derive instance eqSetExpr :: Eq SetExpr 
 derive instance eqLogicalExpr :: Eq LogicalExpr 
+derive instance eqConditionExpr :: Eq ConditionExpr 
+derive instance eqSimpleExpr :: Eq SimpleExpr 
 
 instance showDateformula :: Show DateFormula where 
     show = genericShow 
@@ -100,8 +108,15 @@ instance showName :: Show Name where
 instance showFieldExpr :: Show FieldExpr where 
     show = genericShow 
 
-instance showSetExpr:: Show SetExpr where 
+instance showSetExpr :: Show SetExpr where 
     show = genericShow 
 
-instance showLogicalExpr:: Show LogicalExpr where 
+instance showLogicalExpr :: Show LogicalExpr where 
+    show = genericShow 
+
+instance showConditionExpr :: Show ConditionExpr where 
+    show (SimplExpr se) = "(SimplExpr" <> show se <> ")"
+    show x = genericShow x
+
+instance showSimpleExpr :: Show SimpleExpr where 
     show = genericShow 

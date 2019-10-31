@@ -3,6 +3,7 @@ module Language.SOQL.Parser where
 import Prelude (Unit, ($), (<$>), (<*>), bind, pure)
 import Control.Applicative ((<*))
 import Control.Alt ((<|>))
+import Control.Lazy (fix)
 import Data.Either (Either)
 import Data.List (List)
 import Data.Maybe (Maybe(..))
@@ -19,10 +20,28 @@ type P = Parser (List (L Token))
 parse :: forall a. String -> P a ->  Either ParseError a 
 parse s p = runParser (lexSOQL s) p
 
+condExpr :: P ConditionExpr
+condExpr = 
+    try (LogicExpr <$> logicalExpr) <|> 
+    (SimplExpr <$> smplExp)
+    where 
+        smplExp = fix $ \_ -> simpleExpr
+
+
+simpleExpr :: P SimpleExpr 
+simpleExpr = 
+    try (SExpr <$> setExpr)    <|>
+    try (FldExpr <$> fieldExpr) <|>
+    try (parens condExp)       <|>
+    try condExp                <?> "simplExpr" 
+    where 
+        condExp = fix $ \_ -> (CondExpr <$> condExpr)
+    
+
 logicalExpr :: P LogicalExpr 
 logicalExpr = 
     notCase <|>
-    (LogicalExpr <$> fieldExpr <*> loperator <*> optMaybe fieldExpr)
+    LogicalExpr <$> fieldExpr <*> loperator <*> optMaybe fieldExpr
     where 
         notCase = do 
             lop <- loperator

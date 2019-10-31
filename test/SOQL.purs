@@ -1,10 +1,12 @@
 module Test.SOQL where 
 
-import Prelude (Unit, discard, mempty)
+import Prelude (Unit, ($), discard, mempty)
+import Control.Lazy (fix)
 import Data.List (List(..), (:))
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Effect (Effect)
+import Effect.Aff (supervise)
 import Language.SOQL.Parser 
 import Language.SOQL.Syntax
 import Test.Spec (Spec, describe, it)
@@ -37,3 +39,31 @@ spec = do
         let x        = "NOT Name = 'Salesforce'"
             expected = Right (LogicalExpr (FieldExpr (Name "Name") EQ (String "Salesforce")) NOT Nothing)
         parse x logicalExpr `shouldEqual` expected
+
+    it "LogicalExpr Infix" do
+        let x        = "Name = 'Salesforce' OR Name = 'SForce'"
+            expected = Right (LogicalExpr (FieldExpr (Name "Name") EQ (String "Salesforce")) OR (Just (FieldExpr (Name "Name") EQ (String "SForce"))))
+        parse x logicalExpr `shouldEqual` expected
+
+    describe "SimpleExpr" do 
+        it "SExpr" do 
+            let x        = "BillingState IN ('California', 'New York')"
+                expected = Right (SExpr (SetExpr (Name "BillingState") IN (String "California" : String "New York" : Nil)))
+            parse x simpleExpr `shouldEqual` expected
+
+        it "FldExpr" do 
+            let x        = "CreatedDate > YESTERDAY"
+                expected = Right (FldExpr (FieldExpr (Name "CreatedDate") GT (DateFormula YESTERDAY)))
+            parse x simpleExpr `shouldEqual` expected
+
+        it "CondExpr" do 
+            let x        = "(Name = 'Salesforce' OR Name = 'SForce')"
+                expected = Right (CondExpr (LogicExpr (LogicalExpr (FieldExpr (Name "Name") EQ (String "Salesforce")) OR (Just (FieldExpr (Name "Name") EQ (String "SForce"))))))
+            parse x simpleExpr `shouldEqual` expected
+
+    describe "ConditionExpr" do 
+        it "LogicExpr" do
+            let x        = "NOT Name = 'Salesforce'"
+                expected = Right (LogicExpr (LogicalExpr (FieldExpr (Name "Name") EQ (String "Salesforce")) NOT Nothing))
+            parse x condExpr `shouldEqual` expected
+    
