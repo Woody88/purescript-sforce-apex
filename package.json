@@ -2,7 +2,8 @@
   "scripts": {
     "build": "yarn spago build",
     "build-watch": "yarn spago build -w",
-    "repl": "yarn spago repl"
+    "repl": "yarn spago repl",
+    "test": "yarn spago test"
   },
   "devDependencies": {
     "purescript": "^0.13.3",

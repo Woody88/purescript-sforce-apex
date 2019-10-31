@@ -1,8 +1,9 @@
 module Test.SOQL where 
 
-import Prelude (Unit, ($), discard, mempty)
+import Prelude (Unit, ($), discard, mempty, pure)
 import Control.Lazy (fix)
 import Data.List (List(..), (:))
+import Data.Maybe (Maybe(..))
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
 import Effect (Effect)
@@ -67,3 +68,19 @@ spec = do
                 expected = Right (LogicExpr (LogicalExpr (FieldExpr (Name "Name") EQ (String "Salesforce")) NOT Nothing))
             parse x condExpr `shouldEqual` expected
     
+    describe "Query Compilation" do 
+        it "Simple Query" do 
+            let x = "SELECT Account FROM Lead"
+                select = pure $ Name "Account"
+                from   = pure $ Name "Lead" 
+                expected = Right {select, from, "where": Nothing}
+            parse x queryCompilation `shouldEqual` expected
+
+
+        it "Query with where clause" do 
+            let x = "SELECT Account, RecordType FROM Lead WHERE Id = 'a9p000041321ACM'"
+                select = (Name "Account" : Name "RecordType" : mempty)
+                from   = pure $ Name "Lead" 
+                where_ = (Just (SimplExpr (FldExpr (FieldExpr (Name "Id") EQ (String "a9p000041321ACM")))))
+                expected = Right {select, from, "where": where_}
+            parse x queryCompilation `shouldEqual` expected

@@ -56,6 +56,7 @@ data DateFormula
     | NEXT_N_FISCAL_YEARS Int | LAST_N_FISCAL_YEARS Int | N_FISCAL_YEARS_AGO Int
 
 type FieldOrderByList = List Name 
+type ObjectTypeList = List Name 
 
 data FieldExpr = FieldExpr Name CompirasonOperator Value 
 
@@ -66,6 +67,12 @@ data LogicalExpr = LogicalExpr FieldExpr LogicalOperator (Maybe FieldExpr)
 data ConditionExpr = LogicExpr LogicalExpr | SimplExpr SimpleExpr 
 
 data SimpleExpr = CondExpr ConditionExpr | FldExpr FieldExpr | SExpr SetExpr 
+
+type Query 
+    = { select  :: FieldOrderByList 
+      , from    :: ObjectTypeList
+      , where   :: Maybe ConditionExpr
+      } 
 
 derive instance genericDateformula :: Generic DateFormula _ 
 derive instance genericCompirasonOperator :: Generic CompirasonOperator _ 
@@ -115,7 +122,7 @@ instance showLogicalExpr :: Show LogicalExpr where
     show = genericShow 
 
 instance showConditionExpr :: Show ConditionExpr where 
-    show (SimplExpr se) = "(SimplExpr" <> show se <> ")"
+    show (SimplExpr se) = "(SimplExpr " <> show se <> ")"
     show x = genericShow x
 
 instance showSimpleExpr :: Show SimpleExpr where 

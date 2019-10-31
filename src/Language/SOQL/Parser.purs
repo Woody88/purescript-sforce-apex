@@ -1,18 +1,19 @@
 module Language.SOQL.Parser where
 
-import Prelude (Unit, ($), (<$>), (<*>), bind, pure)
+import Prelude (Unit, ($), (<$>), (<*>), discard, bind, pure)
 import Control.Applicative ((<*))
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
 import Data.Either (Either)
 import Data.List (List)
 import Data.Maybe (Maybe(..))
-import Language.Internal (langToken, tok, seplist1, lopt, optMaybe)
+import Language.Internal (langToken, tok, seplist1, lopt, list, optMaybe)
 import Language.Types (L)
 import Language.SOQL.Lexer (lexSOQL)
 import Language.SOQL.Lexer.Types (Token(..))
 import Language.SOQL.Syntax 
 import Text.Parsing.Parser (Parser, ParseError, runParser)
+import Text.Parsing.Parser.String (eof)
 import Text.Parsing.Parser.Combinators ((<?>), try, notFollowedBy, between)
 
 type P = Parser (List (L Token))
@@ -20,10 +21,24 @@ type P = Parser (List (L Token))
 parse :: forall a. String -> P a ->  Either ParseError a 
 parse s p = runParser (lexSOQL s) p
 
+queryCompilation :: P Query 
+queryCompilation = do 
+    tok KW_Select
+    select <- fieldList
+    tok KW_From
+    from <- fieldList
+
+    where_ <- optMaybe do 
+        tok KW_Where
+        condExpr
+    pure $ {select, from, "where": where_}
+
+
+     
 condExpr :: P ConditionExpr
 condExpr = 
     try (LogicExpr <$> logicalExpr) <|> 
-    (SimplExpr <$> smplExp)
+    (SimplExpr <$> smplExp) <?> "codndExpr"
     where 
         smplExp = fix $ \_ -> simpleExpr
 
@@ -40,7 +55,7 @@ simpleExpr =
 
 logicalExpr :: P LogicalExpr 
 logicalExpr = 
-    notCase <|>
+    try notCase <|>
     LogicalExpr <$> fieldExpr <*> loperator <*> optMaybe fieldExpr
     where 
         notCase = do 
