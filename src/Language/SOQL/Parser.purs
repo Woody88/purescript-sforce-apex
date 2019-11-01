@@ -27,8 +27,8 @@ queryCompilation :: P Query
 queryCompilation = do 
     select <- selectExpr
     from   <- fromExpr
-    where_ <- optMaybe whereExpr
     using  <- optMaybe usingExpr
+    where_ <- optMaybe whereExpr
     pure $ {select, from, "where": where_, using}
 
 selectExpr :: P (List Name)
