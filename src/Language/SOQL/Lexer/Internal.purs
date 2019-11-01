@@ -16,7 +16,7 @@ import Language.Types (L)
 import Language.SOQL.Lexer.Utils ((<<=:), (<=:), istring)
 import Text.Parsing.Parser (fail)
 import Text.Parsing.Parser.Language (javaStyle)
-import Text.Parsing.Parser.Combinators (try, notFollowedBy, option, optional, choice)
+import Text.Parsing.Parser.Combinators (try, lookAhead, notFollowedBy, option, optional, choice)
 import Text.Parsing.Parser.String (string, char, satisfy)
 import Text.Parsing.Parser.Token 
 import Unsafe.Coerce (unsafeCoerce)
@@ -75,19 +75,19 @@ readToken =
     try (This_fiscal_year     <=: istring "this_fiscal_year" ) <|> 
     try (Last_fiscal_year     <=: istring "last_fiscal_year" ) <|> 
     try (Next_fiscal_year     <=: istring "next_fiscal_year" ) <|>
-    try (Format               <=: istring "format" ) <|> 
-    try (Tolabel              <=: istring "tolabel" ) <|> 
-    try (Convert_time_zone    <=: istring "convert_time_zone" ) <|> 
-    try (Convert_currency     <=: istring "convert_currency" ) <|> 
-    try (Grouping             <=: istring "grouping" ) <|> 
-    try (Distance             <=: istring "distance" ) <|> 
-    try (Geolocation          <=: istring "geolocation" ) <|>
-    try (Avg                  <=: istring "avg" ) <|> 
-    try (Count                <=: istring "count" ) <|> 
-    try (Count_distinct       <=: istring "count_distinct" ) <|> 
-    try (Min                  <=: istring "min" ) <|> 
-    try (Max                  <=: istring "max" ) <|> 
-    try (Sum                  <=: istring "sum" ) <|>
+    try (Format               <=: funcLiteral "format" ) <|> 
+    try (Tolabel              <=: funcLiteral "tolabel" ) <|> 
+    try (Convert_time_zone    <=: funcLiteral "convert_time_zone" ) <|> 
+    try (Convert_currency     <=: funcLiteral "convert_currency" ) <|> 
+    try (Grouping             <=: funcLiteral "grouping" ) <|> 
+    try (Distance             <=: funcLiteral "distance" ) <|> 
+    try (Geolocation          <=: funcLiteral "geolocation" ) <|>
+    try (Avg                  <=: funcLiteral "avg" ) <|> 
+    try (Count                <=: funcLiteral "count" ) <|> 
+    try (Count_distinct       <=: funcLiteral "count_distinct" ) <|> 
+    try (Min                  <=: funcLiteral "min" ) <|> 
+    try (Max                  <=: funcLiteral "max" ) <|> 
+    try (Sum                  <=: funcLiteral "sum" ) <|>
     try (Calendar_month       <=: istring "calendar_month" ) <|> 
     try (Calendar_quarter     <=: istring "calendar_quarter" ) <|> 
     try (Calendar_year        <=: istring "calendar_year" ) <|> 
@@ -111,8 +111,7 @@ readToken =
     try (Offset           <=:    istring "offset"         ) <|>                 
     try (Group            <=:    istring "group"          ) <|>                 
     try (Order            <=:    istring "order"          ) <|>                  
-    try (Reference        <=:    istring "reference"      ) <|>              
-    try (Scope            <=:    istring "scope"          ) <|>                  
+    try (Reference        <=:    istring "reference"      ) <|>                             
     try (Tracking         <=:    istring "tracking"       ) <|>               
     try (Then             <=:    istring "then"           ) <|>                   
     try (Typeof           <=:    istring "typeof"         ) <|>                 
@@ -178,6 +177,12 @@ javaLexer = makeTokenParser javaLanguage
 javaLanguage :: LanguageDef
 javaLanguage = javaStyle
 
+funcLiteral :: String -> P Unit 
+funcLiteral s = do 
+    s <- istring s
+    _ <- lookAhead $ char '('
+    pure unit
+     
 longLiteral :: P BigInt.BigInt 
 longLiteral = do 
     i <- zero <|> digitsStr

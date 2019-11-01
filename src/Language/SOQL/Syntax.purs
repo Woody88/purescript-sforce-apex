@@ -68,10 +68,13 @@ data ConditionExpr = LogicExpr LogicalExpr | SimplExpr SimpleExpr
 
 data SimpleExpr = CondExpr ConditionExpr | FldExpr FieldExpr | SExpr SetExpr 
 
+data UsingExpr = Delegated | Everything | Mine | MineAndMyGroups | MyTerritory | MyTeamTerritory | Team
+
 type Query 
     = { select  :: FieldOrderByList 
       , from    :: ObjectTypeList
       , where   :: Maybe ConditionExpr
+      , using   :: Maybe UsingExpr 
       } 
 
 derive instance genericDateformula :: Generic DateFormula _ 
@@ -84,6 +87,7 @@ derive instance genericSetExpr :: Generic SetExpr _
 derive instance genericLogicalExpr :: Generic LogicalExpr _ 
 derive instance genericConditionExpr :: Generic ConditionExpr _ 
 derive instance genericSimpleExpr :: Generic SimpleExpr _ 
+derive instance genericUsingExpr :: Generic UsingExpr _ 
 
 derive instance eqDateformula :: Eq DateFormula 
 derive instance eqCompirasonOperator :: Eq CompirasonOperator 
@@ -95,6 +99,7 @@ derive instance eqSetExpr :: Eq SetExpr
 derive instance eqLogicalExpr :: Eq LogicalExpr 
 derive instance eqConditionExpr :: Eq ConditionExpr 
 derive instance eqSimpleExpr :: Eq SimpleExpr 
+derive instance eqUsingExpr :: Eq UsingExpr 
 
 instance showDateformula :: Show DateFormula where 
     show = genericShow 
@@ -126,4 +131,7 @@ instance showConditionExpr :: Show ConditionExpr where
     show x = genericShow x
 
 instance showSimpleExpr :: Show SimpleExpr where 
+    show = genericShow 
+
+instance showUsingExpr :: Show UsingExpr where 
     show = genericShow 

@@ -1,18 +1,20 @@
 module Language.SOQL.Parser where
 
-import Prelude (Unit, ($), (<$>), (<*>), discard, bind, pure)
+import Prelude (Unit, ($), (<$>), (<*>), (*>), (>>=), (<<<), (==), unit, discard, bind, pure)
 import Control.Applicative ((<*))
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
+import Data.Foldable (for_)
 import Data.Either (Either)
-import Data.List (List)
+import Data.List (List, singleton)
 import Data.Maybe (Maybe(..))
+import Data.String.Common (toLower)
 import Language.Internal (langToken, tok, seplist1, lopt, list, optMaybe)
 import Language.Types (L)
 import Language.SOQL.Lexer (lexSOQL)
 import Language.SOQL.Lexer.Types (Token(..))
 import Language.SOQL.Syntax 
-import Text.Parsing.Parser (Parser, ParseError, runParser)
+import Text.Parsing.Parser (Parser, ParseError, runParser, fail)
 import Text.Parsing.Parser.String (eof)
 import Text.Parsing.Parser.Combinators ((<?>), try, notFollowedBy, between)
 
@@ -23,18 +25,37 @@ parse s p = runParser (lexSOQL s) p
 
 queryCompilation :: P Query 
 queryCompilation = do 
+    select <- selectExpr
+    from   <- fromExpr
+    where_ <- optMaybe whereExpr
+    using  <- optMaybe usingExpr
+    pure $ {select, from, "where": where_, using}
+
+selectExpr :: P (List Name)
+selectExpr = do  
     tok KW_Select
-    select <- fieldList
+    fieldList
+
+fromExpr :: P (List Name)
+fromExpr = do 
     tok KW_From
-    from <- fieldList
+    fieldList
 
-    where_ <- optMaybe do 
-        tok KW_Where
-        condExpr
-    pure $ {select, from, "where": where_}
+whereExpr :: P ConditionExpr
+whereExpr = do 
+    tok KW_Where
+    condExpr
+    
+usingExpr :: P UsingExpr 
+usingExpr = do 
+    tok KW_Using 
+    scopeTok
+    filterScope
+    where 
+        scopeTok = ident >>= scope
+        scope n@(Name s) = if toLower s == "scope" then pure unit else scope (Ref $ singleton n)
+        scope (Ref n)    = fail "scope token"
 
-
-     
 condExpr :: P ConditionExpr
 condExpr = 
     try (LogicExpr <$> logicalExpr) <|> 
@@ -134,6 +155,25 @@ ident :: P Name
 ident = langToken $ \t -> case t of
     Ident s -> Just $ Name s
     _ -> Nothing
+
+filterScope :: P UsingExpr 
+filterScope = do 
+    scope <- getIdent 
+    case (toLower scope) of
+        "delegated"         -> pure $ Delegated
+        "everything"        -> pure $ Everything
+        "mine"              -> pure $ Mine 
+        "mineandmygroups"   -> pure $ MineAndMyGroups 
+        "my_territory"      -> pure $ MyTerritory 
+        "my_team_territory" -> pure $ MyTeamTerritory
+        "team"              -> pure $ Team 
+        _                   -> fail "unexepected filterScope token"
+
+    where 
+        getIdent = langToken $ \t -> case t of 
+            Ident x -> Just x
+            _       -> Nothing
+
 
 dateformula :: P DateFormula 
 dateformula = langToken $ \t -> case t of 

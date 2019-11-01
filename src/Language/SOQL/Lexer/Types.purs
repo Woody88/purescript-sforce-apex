@@ -22,7 +22,7 @@ data Token =
 
     -- Non Reserved Keyword 
     | Above | Above_or_below | At | Below | Category | Data | End | Offset | Group
-    | Order | Reference | Scope | Tracking | Then | Typeof | View | Viewstat | When
+    | Order | Reference | Tracking | Then | Typeof | View | Viewstat | When
 
     -- Comparison Operators
     | Op_Eq | Op_GThan | Op_LThan | Op_LThanE | Op_GThanE | Op_NotEq | Op_In | Op_NotIn
