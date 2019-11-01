@@ -11,8 +11,8 @@ type P = Parser String
 
 data Token = 
     -- Reserved Keywords 
-    KW_As | KW_Asc | KW_By | KW_Cube | KW_Desc | KW_Else 
-    | KW_First | KW_From | KW_Group | KW_Having  | KW_Last  
+    KW_As | KW_Asc | KW_OrderBy | KW_Cube | KW_Desc | KW_Else 
+    | KW_NullFirst | KW_From | KW_Group | KW_Having  | KW_NullLast  
     | KW_Limit | KW_Rollup | KW_Select | KW_Using 
     | KW_Where | KW_With | KW_For | KW_Update  
 

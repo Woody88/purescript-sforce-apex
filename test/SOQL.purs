@@ -2,7 +2,7 @@ module Test.SOQL where
 
 import Prelude (Unit, ($), discard, mempty, pure)
 import Control.Lazy (fix)
-import Data.List (List(..), (:))
+import Data.List (List(..), (:), singleton)
 import Data.Maybe (Maybe(..))
 import Data.Either (Either(..))
 import Data.Maybe (Maybe(..))
@@ -73,7 +73,7 @@ spec = do
             let x = "SELECT Account FROM Lead"
                 select = pure $ Name "Account"
                 from   = pure $ Name "Lead" 
-                expected = Right {select, from, "where": Nothing, using: Nothing}
+                expected = Right {select, from, "where": Nothing, using: Nothing, orderBy: Nothing}
             parse x queryCompilation `shouldEqual` expected
 
 
@@ -82,15 +82,26 @@ spec = do
                 select = (Name "Account" : Name "RecordType" : mempty)
                 from   = pure $ Name "Lead" 
                 where_ = (Just (SimplExpr (FldExpr (FieldExpr (Name "Id") EQ (String "a9p000041321ACM")))))
-                expected = Right {select, from, "where": where_, using: Nothing}
+                expected = Right {select, from, "where": where_, using: Nothing, orderBy: Nothing}
             parse x queryCompilation `shouldEqual` expected
 
         
         it "Query with where and using clause" do 
-            let x = "SELECT Account, RecordType FROM Lead WHERE Id = 'a9p000041321ACM' USING SCOPE Mine"
+            let x = "SELECT Account, RecordType FROM Lead USING SCOPE Mine WHERE Id = 'a9p000041321ACM'"
                 select = (Name "Account" : Name "RecordType" : mempty)
                 from   = pure $ Name "Lead" 
                 where_ = (Just (SimplExpr (FldExpr (FieldExpr (Name "Id") EQ (String "a9p000041321ACM")))))
                 using  = Just Mine
-                expected = Right {select, from, "where": where_, using}
+                expected = Right {select, from, "where": where_, using, orderBy: Nothing}
+            parse x queryCompilation `shouldEqual` expected
+
+
+        it "Query with where, using, order by clause" do 
+            let x = "SELECT Account, RecordType FROM Lead USING SCOPE Mine WHERE Id = 'a9p000041321ACM' Order By Account Asc Nulls Last"
+                select = (Name "Account" : Name "RecordType" : mempty)
+                from   = pure $ Name "Lead" 
+                where_ = (Just (SimplExpr (FldExpr (FieldExpr (Name "Id") EQ (String "a9p000041321ACM")))))
+                using  = Just Mine
+                orderBy = Just (OrderByExpr (singleton (Name "Account")) ASC Last)
+                expected = Right {select, from, "where": where_, using, orderBy}
             parse x queryCompilation `shouldEqual` expected

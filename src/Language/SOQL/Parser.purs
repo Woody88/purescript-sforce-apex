@@ -25,11 +25,12 @@ parse s p = runParser (lexSOQL s) p
 
 queryCompilation :: P Query 
 queryCompilation = do 
-    select <- selectExpr
-    from   <- fromExpr
-    using  <- optMaybe usingExpr
-    where_ <- optMaybe whereExpr
-    pure $ {select, from, "where": where_, using}
+    select  <- selectExpr
+    from    <- fromExpr
+    using   <- optMaybe usingExpr
+    where_  <- optMaybe whereExpr
+    orderBy <- optMaybe orderByExpr
+    pure $ {select, from, "where": where_, using, orderBy}
 
 selectExpr :: P (List Name)
 selectExpr = do  
@@ -55,6 +56,14 @@ usingExpr = do
         scopeTok = ident >>= scope
         scope n@(Name s) = if toLower s == "scope" then pure unit else scope (Ref $ singleton n)
         scope (Ref n)    = fail "scope token"
+
+orderByExpr :: P OrderByExpr
+orderByExpr = do 
+    tok KW_OrderBy 
+    fldOrderList  <- fieldList
+    orderByProps <- try (tok KW_Asc *> pure ASC) <|> (tok KW_Desc *> pure DESC)
+    orderByNulls <- try (tok KW_NullFirst *> pure First) <|> (tok KW_NullLast *> pure Last)
+    pure $ OrderByExpr fldOrderList orderByProps orderByNulls
 
 condExpr :: P ConditionExpr
 condExpr = 

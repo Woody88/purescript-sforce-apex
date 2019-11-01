@@ -55,6 +55,14 @@ data DateFormula
     | LAST_N_YEARS Int | N_YEARS_AGO Int | NEXT_N_FISCAL_QUARTERS Int | LAST_N_FISCAL_QUARTERS Int | N_FISCAL_QUARTERS_AGO Int 
     | NEXT_N_FISCAL_YEARS Int | LAST_N_FISCAL_YEARS Int | N_FISCAL_YEARS_AGO Int
 
+
+-- Specifies whether the results are ordered in ascending (ASC) or descending (DESC) order. Default order is ascending.
+data OrderByProps 
+    = ASC | DESC 
+
+-- Orders null records at the beginning (NULLS FIRST) or end (NULLS LAST) of the results. By default, null values are sorted first. 
+data OrderByNull = First | Last 
+
 type FieldOrderByList = List Name 
 type ObjectTypeList = List Name 
 
@@ -70,11 +78,14 @@ data SimpleExpr = CondExpr ConditionExpr | FldExpr FieldExpr | SExpr SetExpr
 
 data UsingExpr = Delegated | Everything | Mine | MineAndMyGroups | MyTerritory | MyTeamTerritory | Team
 
+data OrderByExpr = OrderByExpr FieldOrderByList OrderByProps OrderByNull
+
 type Query 
     = { select  :: FieldOrderByList 
       , from    :: ObjectTypeList
       , where   :: Maybe ConditionExpr
       , using   :: Maybe UsingExpr 
+      , orderBy :: Maybe OrderByExpr
       } 
 
 derive instance genericDateformula :: Generic DateFormula _ 
@@ -88,6 +99,9 @@ derive instance genericLogicalExpr :: Generic LogicalExpr _
 derive instance genericConditionExpr :: Generic ConditionExpr _ 
 derive instance genericSimpleExpr :: Generic SimpleExpr _ 
 derive instance genericUsingExpr :: Generic UsingExpr _ 
+derive instance genericOrderByExpr :: Generic OrderByExpr _ 
+derive instance genericOrderByProps :: Generic OrderByProps _ 
+derive instance genericOrderByNull :: Generic OrderByNull _ 
 
 derive instance eqDateformula :: Eq DateFormula 
 derive instance eqCompirasonOperator :: Eq CompirasonOperator 
@@ -100,6 +114,9 @@ derive instance eqLogicalExpr :: Eq LogicalExpr
 derive instance eqConditionExpr :: Eq ConditionExpr 
 derive instance eqSimpleExpr :: Eq SimpleExpr 
 derive instance eqUsingExpr :: Eq UsingExpr 
+derive instance eqOrderByExpr :: Eq OrderByExpr 
+derive instance eqOrderByProps :: Eq OrderByProps 
+derive instance eqOrderByNull :: Eq OrderByNull 
 
 instance showDateformula :: Show DateFormula where 
     show = genericShow 
@@ -134,4 +151,14 @@ instance showSimpleExpr :: Show SimpleExpr where
     show = genericShow 
 
 instance showUsingExpr :: Show UsingExpr where 
+    show = genericShow 
+
+instance showOrderByExpr :: Show OrderByExpr where 
+    show = genericShow 
+
+instance showOrderByProps :: Show OrderByProps where 
+    show = genericShow 
+
+
+instance showOrderByNull :: Show OrderByNull where 
     show = genericShow 
