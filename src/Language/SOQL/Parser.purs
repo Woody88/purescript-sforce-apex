@@ -30,7 +30,8 @@ queryCompilation = do
     using   <- optMaybe usingExpr
     where_  <- optMaybe whereExpr
     orderBy <- optMaybe orderByExpr
-    pure $ {select, from, "where": where_, using, orderBy}
+    limit   <- optMaybe limitExpr 
+    pure $ {select, from, "where": where_, using, orderBy, limit}
 
 selectExpr :: P (List Name)
 selectExpr = do  
@@ -64,6 +65,12 @@ orderByExpr = do
     orderByProps <- try (tok KW_Asc *> pure ASC) <|> (tok KW_Desc *> pure DESC)
     orderByNulls <- try (tok KW_NullFirst *> pure First) <|> (tok KW_NullLast *> pure Last)
     pure $ OrderByExpr fldOrderList orderByProps orderByNulls
+
+limitExpr :: P LimitExpr
+limitExpr = do 
+    tok KW_Limit 
+    value <?> "limitExpr"
+
 
 condExpr :: P ConditionExpr
 condExpr = 

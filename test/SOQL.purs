@@ -71,9 +71,9 @@ spec = do
     describe "Query Compilation" do 
         it "Simple Query" do 
             let x = "SELECT Account FROM Lead"
-                select = pure $ Name "Account"
-                from   = pure $ Name "Lead" 
-                expected = Right {select, from, "where": Nothing, using: Nothing, orderBy: Nothing}
+                select = singleton $ Name "Account"
+                from   = singleton $ Name "Lead" 
+                expected = Right {select, from, "where": Nothing, using: Nothing, orderBy: Nothing, limit: Nothing}
             parse x queryCompilation `shouldEqual` expected
 
 
@@ -82,26 +82,39 @@ spec = do
                 select = (Name "Account" : Name "RecordType" : mempty)
                 from   = pure $ Name "Lead" 
                 where_ = (Just (SimplExpr (FldExpr (FieldExpr (Name "Id") EQ (String "a9p000041321ACM")))))
-                expected = Right {select, from, "where": where_, using: Nothing, orderBy: Nothing}
+                expected = Right {select, from, "where": where_, using: Nothing, orderBy: Nothing, limit: Nothing}
             parse x queryCompilation `shouldEqual` expected
 
         
         it "Query with where and using clause" do 
             let x = "SELECT Account, RecordType FROM Lead USING SCOPE Mine WHERE Id = 'a9p000041321ACM'"
                 select = (Name "Account" : Name "RecordType" : mempty)
-                from   = pure $ Name "Lead" 
+                from   = singleton $ Name "Lead" 
                 where_ = (Just (SimplExpr (FldExpr (FieldExpr (Name "Id") EQ (String "a9p000041321ACM")))))
                 using  = Just Mine
-                expected = Right {select, from, "where": where_, using, orderBy: Nothing}
+                expected = Right {select, from, "where": where_, using, orderBy: Nothing, limit: Nothing}
             parse x queryCompilation `shouldEqual` expected
 
 
-        it "Query with where, using, order by clause" do 
+        it "Query with where, using, and order by clause" do 
             let x = "SELECT Account, RecordType FROM Lead USING SCOPE Mine WHERE Id = 'a9p000041321ACM' Order By Account Asc Nulls Last"
                 select = (Name "Account" : Name "RecordType" : mempty)
-                from   = pure $ Name "Lead" 
+                from   = singleton $ Name "Lead" 
                 where_ = (Just (SimplExpr (FldExpr (FieldExpr (Name "Id") EQ (String "a9p000041321ACM")))))
                 using  = Just Mine
                 orderBy = Just (OrderByExpr (singleton (Name "Account")) ASC Last)
-                expected = Right {select, from, "where": where_, using, orderBy}
+                expected = Right {select, from, "where": where_, using, orderBy, limit: Nothing}
             parse x queryCompilation `shouldEqual` expected
+
+        it "Query with where, using, order by, and limit clause" do 
+            let x = "Limit 10"
+                -- select = (Name "Account" : Name "RecordType" : mempty)
+                -- from   = singleton $ Name "Lead" 
+                -- where_ = (Just (SimplExpr (FldExpr (FieldExpr (Name "Id") EQ (String "a9p000041321ACM")))))
+                -- using  = Just Mine
+                -- orderBy = Just (OrderByExpr (singleton (Name "Account")) ASC Last)
+                limit = (Right (Integer 10))
+                expected = limit -- Right {select, from, "where": where_, using, orderBy, limit: (Just (Integer 10))}
+            parse x limitExpr `shouldEqual` expected
+
+

@@ -80,12 +80,15 @@ data UsingExpr = Delegated | Everything | Mine | MineAndMyGroups | MyTerritory |
 
 data OrderByExpr = OrderByExpr FieldOrderByList OrderByProps OrderByNull
 
+type LimitExpr = Value 
+
 type Query 
     = { select  :: FieldOrderByList 
       , from    :: ObjectTypeList
       , where   :: Maybe ConditionExpr
       , using   :: Maybe UsingExpr 
       , orderBy :: Maybe OrderByExpr
+      , limit   :: Maybe LimitExpr
       } 
 
 derive instance genericDateformula :: Generic DateFormula _ 
@@ -158,7 +161,6 @@ instance showOrderByExpr :: Show OrderByExpr where
 
 instance showOrderByProps :: Show OrderByProps where 
     show = genericShow 
-
 
 instance showOrderByNull :: Show OrderByNull where 
     show = genericShow 
