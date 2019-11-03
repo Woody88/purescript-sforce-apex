@@ -32,7 +32,8 @@ queryCompilation = do
     orderBy <- optMaybe orderByExpr
     limit   <- optMaybe limitExpr 
     offset  <- optMaybe offsetExpr 
-    pure $ {select, from, "where": where_, using, orderBy, limit, offset}
+    update  <- optMaybe updateExpr
+    pure $ {select, from, "where": where_, using, orderBy, limit, offset, update}
 
 selectExpr :: P (List Name)
 selectExpr = do  
@@ -63,7 +64,7 @@ orderByExpr :: P OrderByExpr
 orderByExpr = do 
     tok KW_OrderBy 
     fldOrderList  <- fieldList
-    orderByProps <- try (tok KW_Asc *> pure ASC) <|> (tok KW_Desc *> pure DESC)
+    orderByProps <- try (tok KW_Asc *> pure Asc) <|> (tok KW_Desc *> pure Desc)
     orderByNulls <- try (tok KW_NullFirst *> pure First) <|> (tok KW_NullLast *> pure Last)
     pure $ OrderByExpr fldOrderList orderByProps orderByNulls
 
@@ -76,6 +77,14 @@ offsetExpr :: P OffsetExpr
 offsetExpr = do 
     tok' "offset" 
     value <?> "OffsetExpr"
+
+updateExpr :: P (List UpdateExpr)
+updateExpr = do 
+    tok KW_Update 
+    seplist1 (try tracking <|> viewstat) comma 
+    where 
+        tracking = tok' "tracking" *> pure Tracking 
+        viewstat = tok' "viewstat" *> pure ViewStat
 
 condExpr :: P ConditionExpr
 condExpr = 

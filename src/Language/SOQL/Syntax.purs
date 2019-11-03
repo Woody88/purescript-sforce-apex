@@ -58,7 +58,7 @@ data DateFormula
 
 -- Specifies whether the results are ordered in ascending (ASC) or descending (DESC) order. Default order is ascending.
 data OrderByProps 
-    = ASC | DESC 
+    = Asc | Desc 
 
 -- Orders null records at the beginning (NULLS FIRST) or end (NULLS LAST) of the results. By default, null values are sorted first. 
 data OrderByNull = First | Last 
@@ -84,6 +84,8 @@ type LimitExpr = Value
 
 type OffsetExpr = Value 
 
+data UpdateExpr  = Tracking | ViewStat
+
 type Query 
     = { select  :: FieldOrderByList 
       , from    :: ObjectTypeList
@@ -92,6 +94,7 @@ type Query
       , orderBy :: Maybe OrderByExpr
       , limit   :: Maybe LimitExpr
       , offset  :: Maybe OffsetExpr
+      , update  :: Maybe (List UpdateExpr)
       } 
 
 derive instance genericDateformula :: Generic DateFormula _ 
@@ -108,6 +111,7 @@ derive instance genericUsingExpr :: Generic UsingExpr _
 derive instance genericOrderByExpr :: Generic OrderByExpr _ 
 derive instance genericOrderByProps :: Generic OrderByProps _ 
 derive instance genericOrderByNull :: Generic OrderByNull _ 
+derive instance genericUpdateExpr :: Generic UpdateExpr _ 
 
 derive instance eqDateformula :: Eq DateFormula 
 derive instance eqCompirasonOperator :: Eq CompirasonOperator 
@@ -123,6 +127,7 @@ derive instance eqUsingExpr :: Eq UsingExpr
 derive instance eqOrderByExpr :: Eq OrderByExpr 
 derive instance eqOrderByProps :: Eq OrderByProps 
 derive instance eqOrderByNull :: Eq OrderByNull 
+derive instance eqUpdateExpr :: Eq UpdateExpr 
 
 instance showDateformula :: Show DateFormula where 
     show = genericShow 
@@ -166,4 +171,7 @@ instance showOrderByProps :: Show OrderByProps where
     show = genericShow 
 
 instance showOrderByNull :: Show OrderByNull where 
+    show = genericShow 
+
+instance showUpdateExpr :: Show UpdateExpr where 
     show = genericShow 
