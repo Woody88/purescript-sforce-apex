@@ -1,25 +1,26 @@
 module Language.SOQL.Lexer.Internal where
 
-import Prelude 
-import Control.Apply ((<*), (*>))
+import Prelude
+import Text.Parsing.Parser.Token
+
 import Control.Alternative ((<|>))
-import Data.BigInt as BigInt
+import Control.Apply ((<*), (*>))
 import Data.Array as Array
+import Data.BigInt as BigInt
+import Data.Int as Int
 import Data.List (toUnfoldable)
-import Data.String.CodeUnits (fromCharArray)
-import Data.Tuple (Tuple(..))
-import Data.Traversable (traverse, sequence)
 import Data.Maybe (maybe)
+import Data.String.CodeUnits (fromCharArray)
+import Data.Traversable (traverse, sequence)
+import Data.Tuple (Tuple(..))
 import Language.SOQL.Lexer.Types (P, Token(..))
+import Language.SOQL.Lexer.Utils ((<<=:), (<=:), istring)
 import Language.SOQL.Lexer.Utils (many1)
 import Language.Types (L)
-import Language.SOQL.Lexer.Utils ((<<=:), (<=:), istring)
 import Text.Parsing.Parser (fail)
-import Text.Parsing.Parser.Language (javaStyle)
 import Text.Parsing.Parser.Combinators (try, lookAhead, notFollowedBy, option, optional, choice)
+import Text.Parsing.Parser.Language (javaStyle)
 import Text.Parsing.Parser.String (string, char, satisfy)
-import Text.Parsing.Parser.Token 
-import Unsafe.Coerce (unsafeCoerce)
 
 readToken :: P (L Token)
 readToken = 
@@ -263,7 +264,9 @@ escapeChar = choice (map parseEsc escMap)
                            [ '\x7', '\x8', '\xC', '\n', '\r', '\t', '\xB', '\\', '\"', '\'' ]
 
 digits :: P Int 
-digits = unsafeCoerce <$> digitsStr 
+digits = do 
+    ds <- digitsStr 
+    maybe (fail "expected digit") pure $ Int.fromString ds 
     
 
 digitsStr :: P String 

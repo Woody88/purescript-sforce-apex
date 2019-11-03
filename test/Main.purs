@@ -15,7 +15,7 @@ import Effect.Console (logShow, log)
 import Language.Apex.Parser (parseCompilationUnit)
 import Test.Spec (describe, it)
 import Test.Spec.Assertions (shouldEqual, fail)
-import Test.Spec.Reporter.Console (consoleReporter)
+import Test.Spec.Reporter (consoleReporter)
 import Test.Spec.Runner (runSpec)
 import Test.SOQL as SOQL 
 import Test.Utils (getApexFileNames, readApexFile)

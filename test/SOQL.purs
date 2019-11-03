@@ -1,17 +1,18 @@
 module Test.SOQL where 
 
-import Prelude (Unit, ($), discard, mempty, pure)
+import Prelude (Unit, ($), (==), discard, mempty, pure)
 import Control.Lazy (fix)
 import Data.List (List(..), (:), singleton)
 import Data.Maybe (Maybe(..))
-import Data.Either (Either(..))
+import Data.Either (Either(..), hush)
 import Data.Maybe (Maybe(..))
 import Effect (Effect)
 import Effect.Aff (supervise)
 import Language.SOQL.Parser 
 import Language.SOQL.Syntax
 import Test.Spec (Spec, describe, it)
-import Test.Spec.Assertions (shouldEqual)
+import Test.Spec.Assertions (shouldEqual, shouldReturn)
+import Text.Parsing.Parser (ParseError)
 
 spec :: Spec Unit
 spec = do
@@ -107,14 +108,15 @@ spec = do
             parse x queryCompilation `shouldEqual` expected
 
         it "Query with where, using, order by, and limit clause" do 
-            let x = "Limit 10"
-                -- select = (Name "Account" : Name "RecordType" : mempty)
-                -- from   = singleton $ Name "Lead" 
-                -- where_ = (Just (SimplExpr (FldExpr (FieldExpr (Name "Id") EQ (String "a9p000041321ACM")))))
-                -- using  = Just Mine
-                -- orderBy = Just (OrderByExpr (singleton (Name "Account")) ASC Last)
-                limit = (Right (Integer 10))
-                expected = limit -- Right {select, from, "where": where_, using, orderBy, limit: (Just (Integer 10))}
-            parse x limitExpr `shouldEqual` expected
+            let x = "SELECT Account, RecordType FROM Lead USING SCOPE Mine WHERE Id = 'a9p000041321ACM' Order By Account Asc Nulls Last Limit 10"
+                select = (Name "Account" : Name "RecordType" : mempty)
+                from   = singleton $ Name "Lead" 
+                where_ = (Just (SimplExpr (FldExpr (FieldExpr (Name "Id") EQ (String "a9p000041321ACM")))))
+                using  = Just Mine
+                orderBy = Just (OrderByExpr (singleton (Name "Account")) ASC Last)
+                limit = Just (Integer 10) 
+                result = hush $ parse x limitExpr
+                expected = Right {select, from, "where": where_, using, orderBy, limit}
+            parse x queryCompilation `shouldEqual` expected
 
 
