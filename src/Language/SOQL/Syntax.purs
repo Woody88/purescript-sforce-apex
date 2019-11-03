@@ -84,7 +84,9 @@ type LimitExpr = Value
 
 type OffsetExpr = Value 
 
-data UpdateExpr  = Tracking | ViewStat
+data UpdateExpr = Tracking | ViewStat
+
+data ForExpr = View | Reference | Update 
 
 type Query 
     = { select  :: FieldOrderByList 
@@ -94,6 +96,7 @@ type Query
       , orderBy :: Maybe OrderByExpr
       , limit   :: Maybe LimitExpr
       , offset  :: Maybe OffsetExpr
+      , for     :: Maybe (List ForExpr)
       , update  :: Maybe (List UpdateExpr)
       } 
 
@@ -112,6 +115,7 @@ derive instance genericOrderByExpr :: Generic OrderByExpr _
 derive instance genericOrderByProps :: Generic OrderByProps _ 
 derive instance genericOrderByNull :: Generic OrderByNull _ 
 derive instance genericUpdateExpr :: Generic UpdateExpr _ 
+derive instance genericForExpr :: Generic ForExpr _ 
 
 derive instance eqDateformula :: Eq DateFormula 
 derive instance eqCompirasonOperator :: Eq CompirasonOperator 
@@ -128,6 +132,7 @@ derive instance eqOrderByExpr :: Eq OrderByExpr
 derive instance eqOrderByProps :: Eq OrderByProps 
 derive instance eqOrderByNull :: Eq OrderByNull 
 derive instance eqUpdateExpr :: Eq UpdateExpr 
+derive instance eqForExpr :: Eq ForExpr 
 
 instance showDateformula :: Show DateFormula where 
     show = genericShow 
@@ -174,4 +179,7 @@ instance showOrderByNull :: Show OrderByNull where
     show = genericShow 
 
 instance showUpdateExpr :: Show UpdateExpr where 
+    show = genericShow 
+
+instance showForExpr :: Show ForExpr where 
     show = genericShow 

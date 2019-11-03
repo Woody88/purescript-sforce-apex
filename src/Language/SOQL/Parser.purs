@@ -33,7 +33,8 @@ queryCompilation = do
     limit   <- optMaybe limitExpr 
     offset  <- optMaybe offsetExpr 
     update  <- optMaybe updateExpr
-    pure $ {select, from, "where": where_, using, orderBy, limit, offset, update}
+    for     <- optMaybe forExpr 
+    pure $ {select, from, "where": where_, using, orderBy, limit, offset, update, for}
 
 selectExpr :: P (List Name)
 selectExpr = do  
@@ -85,6 +86,15 @@ updateExpr = do
     where 
         tracking = tok' "tracking" *> pure Tracking 
         viewstat = tok' "viewstat" *> pure ViewStat
+
+forExpr :: P (List ForExpr)
+forExpr = do 
+    tok KW_For 
+    seplist1 (try view <|> try reference <|> update) comma
+    where 
+        view = tok' "view" *> pure View 
+        reference = tok' "reference" *> pure Reference  
+        update = tok KW_Update *> pure Update 
 
 condExpr :: P ConditionExpr
 condExpr = 

@@ -129,11 +129,20 @@ spec = do
 
         it "Query with update clause" do 
             let x = "SELECT Title FROM FAQ__kav WHERE Keyword = 'Apex' UPDATE TRACKING"
-                select_ = (Name "Title" : mempty)
+                select_ = singleton $ Name "Title" 
                 from_   = singleton $ Name "FAQ__kav" 
                 where_ = (Just (SimplExpr (FldExpr (FieldExpr (Name "Keyword") EQ (String "Apex")))))
-                update_ = Just (Tracking : mempty)
+                update_ = Just $ singleton Tracking 
                 expected = Right $ defaultQuery {select = select_, from = from_, "where" = where_, update = update_}
+            parse x queryCompilation `shouldEqual` expected
+
+        it "Query with for clause" do 
+            let x = "SELECT Id FROM Account LIMIT 2 FOR UPDATE"
+                select_ = singleton $ Name "Id" 
+                from_   = singleton $ Name "Account" 
+                limit_ = Just (Integer 2) 
+                for_ = Just $ singleton Update
+                expected = Right $ defaultQuery {select = select_, from = from_, limit = limit_, for = for_}
             parse x queryCompilation `shouldEqual` expected
 
 defaultQuery :: Query 
@@ -146,4 +155,5 @@ defaultQuery =
     , limit: Nothing 
     , offset: Nothing
     , update: Nothing
+    , for: Nothing
     }
