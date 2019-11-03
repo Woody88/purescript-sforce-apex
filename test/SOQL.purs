@@ -74,7 +74,11 @@ spec = do
             let x = "SELECT Account FROM Lead"
                 select = singleton $ Name "Account"
                 from   = singleton $ Name "Lead" 
-                expected = Right {select, from, "where": Nothing, using: Nothing, orderBy: Nothing, limit: Nothing}
+                using = Nothing 
+                orderBy = Nothing 
+                limit = Nothing 
+                offset = Nothing 
+                expected = Right {select, from, "where": Nothing, using, orderBy, limit, offset}
             parse x queryCompilation `shouldEqual` expected
 
 
@@ -83,7 +87,11 @@ spec = do
                 select = (Name "Account" : Name "RecordType" : mempty)
                 from   = pure $ Name "Lead" 
                 where_ = (Just (SimplExpr (FldExpr (FieldExpr (Name "Id") EQ (String "a9p000041321ACM")))))
-                expected = Right {select, from, "where": where_, using: Nothing, orderBy: Nothing, limit: Nothing}
+                using = Nothing 
+                orderBy = Nothing 
+                limit = Nothing 
+                offset = Nothing 
+                expected = Right {select, from, "where": where_, using, orderBy, limit, offset}
             parse x queryCompilation `shouldEqual` expected
 
         
@@ -93,7 +101,10 @@ spec = do
                 from   = singleton $ Name "Lead" 
                 where_ = (Just (SimplExpr (FldExpr (FieldExpr (Name "Id") EQ (String "a9p000041321ACM")))))
                 using  = Just Mine
-                expected = Right {select, from, "where": where_, using, orderBy: Nothing, limit: Nothing}
+                orderBy = Nothing 
+                limit = Nothing 
+                offset = Nothing 
+                expected = Right {select, from, "where": where_, using, orderBy, limit, offset}
             parse x queryCompilation `shouldEqual` expected
 
 
@@ -104,7 +115,9 @@ spec = do
                 where_ = (Just (SimplExpr (FldExpr (FieldExpr (Name "Id") EQ (String "a9p000041321ACM")))))
                 using  = Just Mine
                 orderBy = Just (OrderByExpr (singleton (Name "Account")) ASC Last)
-                expected = Right {select, from, "where": where_, using, orderBy, limit: Nothing}
+                limit = Nothing 
+                offset = Nothing 
+                expected = Right {select, from, "where": where_, using, orderBy, limit, offset}
             parse x queryCompilation `shouldEqual` expected
 
         it "Query with where, using, order by, and limit clause" do 
@@ -115,8 +128,19 @@ spec = do
                 using  = Just Mine
                 orderBy = Just (OrderByExpr (singleton (Name "Account")) ASC Last)
                 limit = Just (Integer 10) 
-                result = hush $ parse x limitExpr
-                expected = Right {select, from, "where": where_, using, orderBy, limit}
+                offset = Nothing
+                expected = Right {select, from, "where": where_, using, orderBy, limit, offset}
             parse x queryCompilation `shouldEqual` expected
 
 
+        it "Query with where, using, order by, limit, and offset clause" do 
+            let x = "SELECT Account, RecordType FROM Lead USING SCOPE Mine WHERE Id = 'a9p000041321ACM' Order By Account Asc Nulls Last Limit 10 OFFSET 10"
+                select = (Name "Account" : Name "RecordType" : mempty)
+                from   = singleton $ Name "Lead" 
+                where_ = (Just (SimplExpr (FldExpr (FieldExpr (Name "Id") EQ (String "a9p000041321ACM")))))
+                using  = Just Mine
+                orderBy = Just (OrderByExpr (singleton (Name "Account")) ASC Last)
+                limit = Just (Integer 10) 
+                offset = Just (Integer 10)
+                expected = Right {select, from, "where": where_, using, orderBy, limit, offset}
+            parse x queryCompilation `shouldEqual` expected

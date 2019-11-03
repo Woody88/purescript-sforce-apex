@@ -82,6 +82,8 @@ data OrderByExpr = OrderByExpr FieldOrderByList OrderByProps OrderByNull
 
 type LimitExpr = Value 
 
+type OffsetExpr = Value 
+
 type Query 
     = { select  :: FieldOrderByList 
       , from    :: ObjectTypeList
@@ -89,6 +91,7 @@ type Query
       , using   :: Maybe UsingExpr 
       , orderBy :: Maybe OrderByExpr
       , limit   :: Maybe LimitExpr
+      , offset  :: Maybe OffsetExpr
       } 
 
 derive instance genericDateformula :: Generic DateFormula _ 

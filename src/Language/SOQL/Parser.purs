@@ -1,6 +1,6 @@
 module Language.SOQL.Parser where
 
-import Prelude (Unit, ($), (<$>), (<*>), (*>), (>>=), (<<<), (==), unit, discard, bind, pure)
+import Prelude (Unit, ($), (<$>), (<*>), (*>), (>>=), (<<<), (==), (<>), unit, discard, bind, pure)
 import Control.Applicative ((<*))
 import Control.Alt ((<|>))
 import Control.Lazy (fix)
@@ -31,7 +31,8 @@ queryCompilation = do
     where_  <- optMaybe whereExpr
     orderBy <- optMaybe orderByExpr
     limit   <- optMaybe limitExpr 
-    pure $ {select, from, "where": where_, using, orderBy, limit}
+    offset  <- optMaybe offsetExpr 
+    pure $ {select, from, "where": where_, using, orderBy, limit, offset}
 
 selectExpr :: P (List Name)
 selectExpr = do  
@@ -71,6 +72,10 @@ limitExpr = do
     tok KW_Limit 
     value <?> "limitExpr"
 
+offsetExpr :: P OffsetExpr 
+offsetExpr = do 
+    tok' "offset" 
+    value <?> "OffsetExpr"
 
 condExpr :: P ConditionExpr
 condExpr = 
@@ -171,6 +176,13 @@ ident :: P Name
 ident = langToken $ \t -> case t of
     Ident s -> Just $ Name s
     _ -> Nothing
+
+tok' :: String -> P Unit
+tok' t = token
+    where 
+        token = ident >>= tokenName
+        tokenName n@(Name s) = if toLower s == t then pure unit else tokenName (Ref $ singleton n)
+        tokenName (Ref n)    = fail ("unexpected " <> t <> " token")
 
 filterScope :: P UsingExpr 
 filterScope = do 
