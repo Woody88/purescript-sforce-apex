@@ -6,7 +6,7 @@ import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.List (List)
 import Data.Maybe (Maybe)
-
+import Data.Tuple (Tuple)
 
 data Name 
     = Name String 
@@ -55,15 +55,14 @@ data DateFormula
     | LAST_N_YEARS Int | N_YEARS_AGO Int | NEXT_N_FISCAL_QUARTERS Int | LAST_N_FISCAL_QUARTERS Int | N_FISCAL_QUARTERS_AGO Int 
     | NEXT_N_FISCAL_YEARS Int | LAST_N_FISCAL_YEARS Int | N_FISCAL_YEARS_AGO Int
 
-
 -- Specifies whether the results are ordered in ascending (ASC) or descending (DESC) order. Default order is ascending.
-data OrderByProps 
-    = Asc | Desc 
+data OrderByProps = Asc | Desc 
 
 -- Orders null records at the beginning (NULLS FIRST) or end (NULLS LAST) of the results. By default, null values are sorted first. 
 data OrderByNull = First | Last 
 
 type FieldOrderByList = List Name 
+
 type ObjectTypeList = List Name 
 
 data FieldExpr = FieldExpr Name CompirasonOperator Value 
@@ -88,10 +87,19 @@ data UpdateExpr = Tracking | ViewStat
 
 data ForExpr = View | Reference | Update 
 
+data FilterSelector = At | Above | Below | Above_Or_Below
+
+data DataCategorySelection = DataCategorySelection Name FilterSelector Name 
+
+data FilterExpr = FilterExpr DataCategorySelection (Maybe (Tuple LogicalOperator FilterExpr))
+
+type WithExpr = FilterExpr
+
 type Query 
     = { select  :: FieldOrderByList 
       , from    :: ObjectTypeList
       , where   :: Maybe ConditionExpr
+      , with    :: Maybe WithExpr
       , using   :: Maybe UsingExpr 
       , orderBy :: Maybe OrderByExpr
       , limit   :: Maybe LimitExpr
@@ -116,6 +124,9 @@ derive instance genericOrderByProps :: Generic OrderByProps _
 derive instance genericOrderByNull :: Generic OrderByNull _ 
 derive instance genericUpdateExpr :: Generic UpdateExpr _ 
 derive instance genericForExpr :: Generic ForExpr _ 
+derive instance genericFilterSelector :: Generic FilterSelector _ 
+derive instance genericDataCategorySelection :: Generic DataCategorySelection _
+derive instance genericFilterExpr :: Generic FilterExpr _ 
 
 derive instance eqDateformula :: Eq DateFormula 
 derive instance eqCompirasonOperator :: Eq CompirasonOperator 
@@ -133,6 +144,9 @@ derive instance eqOrderByProps :: Eq OrderByProps
 derive instance eqOrderByNull :: Eq OrderByNull 
 derive instance eqUpdateExpr :: Eq UpdateExpr 
 derive instance eqForExpr :: Eq ForExpr 
+derive instance eqFilterSelector :: Eq FilterSelector 
+derive instance eqDataCategorySelection :: Eq DataCategorySelection 
+derive instance eqFilterExpr :: Eq FilterExpr 
 
 instance showDateformula :: Show DateFormula where 
     show = genericShow 
@@ -183,3 +197,12 @@ instance showUpdateExpr :: Show UpdateExpr where
 
 instance showForExpr :: Show ForExpr where 
     show = genericShow 
+
+instance showFilterSelector :: Show FilterSelector where 
+    show = genericShow
+
+instance showDataCategorySelection :: Show DataCategorySelection where 
+    show = genericShow 
+
+instance showFilterExpr :: Show FilterExpr where 
+    show x = genericShow x

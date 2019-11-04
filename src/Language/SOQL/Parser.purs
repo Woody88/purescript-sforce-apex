@@ -9,6 +9,7 @@ import Data.Either (Either)
 import Data.List (List, singleton)
 import Data.Maybe (Maybe(..))
 import Data.String.Common (toLower)
+import Data.Tuple (Tuple(..))
 import Language.Internal (langToken, tok, seplist1, lopt, list, optMaybe)
 import Language.Types (L)
 import Language.SOQL.Lexer (lexSOQL)
@@ -16,7 +17,7 @@ import Language.SOQL.Lexer.Types (Token(..))
 import Language.SOQL.Syntax 
 import Text.Parsing.Parser (Parser, ParseError, runParser, fail)
 import Text.Parsing.Parser.String (eof)
-import Text.Parsing.Parser.Combinators ((<?>), try, notFollowedBy, between)
+import Text.Parsing.Parser.Combinators ((<?>), optional, try, notFollowedBy, between)
 
 type P = Parser (List (L Token))
 
@@ -29,12 +30,13 @@ queryCompilation = do
     from    <- fromExpr
     using   <- optMaybe usingExpr
     where_  <- optMaybe whereExpr
+    with    <- optMaybe withExpr
     orderBy <- optMaybe orderByExpr
     limit   <- optMaybe limitExpr 
     offset  <- optMaybe offsetExpr 
     update  <- optMaybe updateExpr
     for     <- optMaybe forExpr 
-    pure $ {select, from, "where": where_, using, orderBy, limit, offset, update, for}
+    pure $ {select, from, "where": where_, with, using, orderBy, limit, offset, update, for}
 
 selectExpr :: P (List Name)
 selectExpr = do  
@@ -96,13 +98,40 @@ forExpr = do
         reference = tok' "reference" *> pure Reference  
         update = tok KW_Update *> pure Update 
 
+withExpr :: P WithExpr
+withExpr = do 
+    tok' "with"
+    optional (tok' "data" *> tok' "category")
+    filterExpr
+
+filterExpr :: P FilterExpr
+filterExpr = do 
+    a <- dataCategorySelection
+    try (loopList a) <|> (pure $ FilterExpr a Nothing)
+    where 
+        loopList a' = do 
+            l <- loperator
+            as <- filterExpr
+            pure  $ FilterExpr a' (Just $ Tuple l as)
+
+dataCategorySelection :: P DataCategorySelection
+dataCategorySelection  = 
+    DataCategorySelection <$> name <*> filterSelector <*> name 
+
+filterSelector :: P FilterSelector
+filterSelector = try at <|> try above <|> try below <|> aboveOrBelow
+    where 
+        at = tok' "at" *> pure At 
+        above = tok' "above" *> pure Above 
+        below = tok' "below" *> pure Below 
+        aboveOrBelow = tok' "above_or_below" *> pure Above_Or_Below
+
 condExpr :: P ConditionExpr
 condExpr = 
     try (LogicExpr <$> logicalExpr) <|> 
     (SimplExpr <$> smplExp) <?> "codndExpr"
     where 
         smplExp = fix $ \_ -> simpleExpr
-
 
 simpleExpr :: P SimpleExpr 
 simpleExpr = 
@@ -112,7 +141,6 @@ simpleExpr =
     try condExp                <?> "simplExpr" 
     where 
         condExp = fix $ \_ -> (CondExpr <$> condExpr)
-    
 
 logicalExpr :: P LogicalExpr 
 logicalExpr = 
@@ -220,7 +248,6 @@ filterScope = do
         getIdent = langToken $ \t -> case t of 
             Ident x -> Just x
             _       -> Nothing
-
 
 dateformula :: P DateFormula 
 dateformula = langToken $ \t -> case t of 

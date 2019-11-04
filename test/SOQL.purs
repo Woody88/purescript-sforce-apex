@@ -6,6 +6,7 @@ import Data.List (List(..), (:), singleton)
 import Data.Maybe (Maybe(..))
 import Data.Either (Either(..), hush)
 import Data.Maybe (Maybe(..))
+import Data.Tuple (Tuple(..))
 import Effect (Effect)
 import Effect.Aff (supervise)
 import Language.SOQL.Parser 
@@ -145,11 +146,22 @@ spec = do
                 expected = Right $ defaultQuery {select = select_, from = from_, limit = limit_, for = for_}
             parse x queryCompilation `shouldEqual` expected
 
+        it "Query with clause" do 
+            let x = "SELECT Title FROM Question WHERE LastReplyDate < 2005-10-08T01:02:03Z WITH DATA CATEGORY Product__c AT mobile_phones__c AND Product__c BELOW All__c"
+                select_ = singleton $ Name "Title" 
+                from_   = singleton $ Name "Question" 
+                where_ = (Just (SimplExpr (FldExpr (FieldExpr (Name "LastReplyDate") LT (Datetime "2005-10-08T01:02:03Z")))))
+                with_ = Just (FilterExpr (DataCategorySelection (Name "Product__c") At (Name "mobile_phones__c")) (Just (Tuple AND (FilterExpr (DataCategorySelection (Name "Product__c") Below (Name "All__c")) Nothing))))
+                expected = Right $ defaultQuery {select = select_, from = from_, "where" = where_, with = with_}
+            parse x queryCompilation `shouldEqual` expected
+
+
 defaultQuery :: Query 
 defaultQuery = 
     { select: mempty 
     , from: mempty 
     , "where": Nothing 
+    , with: Nothing
     , using: Nothing 
     , orderBy: Nothing 
     , limit: Nothing 

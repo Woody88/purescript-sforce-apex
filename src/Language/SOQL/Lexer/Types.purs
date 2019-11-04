@@ -14,15 +14,11 @@ data Token =
     KW_As | KW_Asc | KW_OrderBy | KW_Cube | KW_Desc | KW_Else 
     | KW_NullFirst | KW_From | KW_Group | KW_Having  | KW_NullLast  
     | KW_Limit | KW_Rollup | KW_Select | KW_Using 
-    | KW_Where | KW_With | KW_For | KW_Update 
+    | KW_Where | KW_For | KW_Update 
 
     -- Literals 
     | IntegerTok Int | LongTok BigInt | DoubleTok Number | StringTok String | BoolTok Boolean 
     | DateTok String | DatetimeTok String | NullTok 
-
-    -- Non Reserved Keyword 
-    | Above | Above_or_below | At | Below | Category | Data | End | Group
-    | Then | Typeof | When
 
     -- Comparison Operators
     | Op_Eq | Op_GThan | Op_LThan | Op_LThanE | Op_GThanE | Op_NotEq | Op_In | Op_NotIn
