@@ -10,16 +10,16 @@ import Data.List (List, singleton)
 import Data.Maybe (Maybe(..))
 import Data.String.Common (toLower)
 import Data.Tuple (Tuple(..))
-import Language.Internal (langToken, tok, seplist1, lopt, list, optMaybe)
+import Language.Internal (langToken, tok, seplist, seplist1, lopt, list, optMaybe)
 import Language.Types (L)
 import Language.SOQL.Lexer (lexSOQL)
 import Language.SOQL.Lexer.Types (Token(..))
 import Language.SOQL.Syntax 
+import Language.SOQL.Syntax.Types
+import Language.SOQL.Parser.Internal 
 import Text.Parsing.Parser (Parser, ParseError, runParser, fail)
 import Text.Parsing.Parser.String (eof)
 import Text.Parsing.Parser.Combinators ((<?>), optional, try, notFollowedBy, between)
-
-type P = Parser (List (L Token))
 
 parse :: forall a. String -> P a ->  Either ParseError a 
 parse s p = runParser (lexSOQL s) p
@@ -38,12 +38,16 @@ queryCompilation = do
     for     <- optMaybe forExpr 
     pure $ {select, from, "where": where_, with, using, orderBy, limit, offset, update, for}
 
-selectExpr :: P (List Name)
+selectExpr :: P SelectExpr
 selectExpr = do  
     tok KW_Select
-    fieldList
+    let selectParam = Tuple <$> selectClause <*> optMaybe name 
+    seplist1 selectParam comma
+    
+selectClause :: P SelectClause 
+selectClause =  try (Field <$> field) <|> Func <$> functionExpr
 
-fromExpr :: P (List Name)
+fromExpr :: P ObjectTypeExpr
 fromExpr = do 
     tok KW_From
     fieldList
@@ -60,8 +64,7 @@ usingExpr = do
     filterScope
     where 
         scopeTok = ident >>= scope
-        scope n@(Name s) = if toLower s == "scope" then pure unit else scope (Ref $ singleton n)
-        scope (Ref n)    = fail "scope token"
+        scope n@(Name s) = if toLower s == "scope" then pure unit else fail "scope token"
 
 orderByExpr :: P OrderByExpr
 orderByExpr = do 
@@ -116,7 +119,7 @@ filterExpr = do
 
 dataCategorySelection :: P DataCategorySelection
 dataCategorySelection  = 
-    DataCategorySelection <$> name <*> filterSelector <*> name 
+    DataCategorySelection <$> field <*> filterSelector <*> field 
 
 filterSelector :: P FilterSelector
 filterSelector = try at <|> try above <|> try below <|> aboveOrBelow
@@ -153,19 +156,32 @@ logicalExpr =
             pure $ LogicalExpr fexp lop Nothing
 
 setExpr :: P SetExpr 
-setExpr = SetExpr <$> name <*> coperator <*> parens (seplist1 value comma)
+setExpr = SetExpr <$> field <*> coperator <*> parens (seplist1 value comma)
 
 fieldExpr :: P FieldExpr 
-fieldExpr = FieldExpr <$> name <*> coperator <*> value 
+fieldExpr = FieldExpr <$> field <*> coperator <*> value 
+
+functionExpr :: P FunctionExpr
+functionExpr = Tuple <$> functionName <*> parens (seplist (fix $ \_ -> functionParameter) comma)
+
+functionName :: P FunctionName
+functionName = 
+    try (DateF <$> fnDate)      <|> 
+    try (AggrF <$> fnAggregate) <|> 
+    try (LocF <$> fnLocation)   <|> 
+    (MiscF <$> fnMisc)
+
+functionParameter :: P FunctionParameter 
+functionParameter = try (FieldP <$> field) <|> (FuncP <$> (fix $ \_ -> functionExpr))
 
 valueList :: P (List Value)
 valueList = seplist1 value comma
 
-fieldList :: P (List Name)
-fieldList = seplist1 field comma 
+fieldList:: P (List (Tuple Field (Maybe Name)))
+fieldList = seplist1 (Tuple <$> field <*> optMaybe name) comma 
 
-field :: P Name 
-field = name 
+field :: P Field 
+field = seplist1 name period 
 
 comma :: P Unit 
 comma = tok Comma  
@@ -176,48 +192,11 @@ period = tok Period
 parens :: forall a. P a -> P a 
 parens = between (tok OpenParen) (tok CloseParen)
 
-value :: P Value 
-value = dateform <|> value'
-    where 
-        dateform = DateFormula <$> dateformula
-        value' = langToken $ \t -> case t of
-            IntegerTok i  -> Just $ Integer i 
-            LongTok l     -> Just $ Long l 
-            DoubleTok n   -> Just $ Double n
-            DateTok d     -> Just $ Date d 
-            DatetimeTok d -> Just $ Datetime d
-            StringTok s   -> Just $ String s
-            BoolTok b     -> Just $ Boolean b 
-            NullTok       -> Just $ Null 
-            _             -> Nothing 
-
-loperator :: P LogicalOperator 
-loperator = langToken $ \t -> case t of
-    Op_And -> Just $ AND 
-    Op_Or  -> Just $ OR 
-    Op_Not -> Just $ NOT
-    _      -> Nothing 
-
-coperator :: P CompirasonOperator
-coperator = langToken $ \t -> case t of
-    Op_Eq       -> Just $ EQ
-    Op_NotEq    -> Just $ NEQ 
-    Op_GThan    -> Just $ GT 
-    Op_LThan    -> Just $ LT 
-    Op_LThanE   -> Just $ LTE 
-    Op_GThanE   -> Just $ GTE 
-    Op_In       -> Just $ IN 
-    Op_NotIn    -> Just $ NIN 
-    Op_Like     -> Just $ LIKE 
-    Op_Excludes -> Just $ EXCLUDES
-    Op_Includes -> Just $ INCLUDES
-    _           -> Nothing 
-
 name :: P Name 
-name = try (ident <* notFollowedBy period) <|>  refName <?> "name"
+name = ident -- <* notFollowedBy period) -- <|>  refName <?> "name"
 
-refName :: P Name 
-refName = Ref <$> seplist1 ident period 
+refName :: P (List Name) 
+refName = seplist1 ident period 
 
 ident :: P Name 
 ident = langToken $ \t -> case t of
@@ -228,8 +207,7 @@ tok' :: String -> P Unit
 tok' t = token
     where 
         token = ident >>= tokenName
-        tokenName n@(Name s) = if toLower s == t then pure unit else tokenName (Ref $ singleton n)
-        tokenName (Ref n)    = fail ("unexpected " <> t <> " token")
+        tokenName n@(Name s) = if toLower s == t then pure unit else fail ("unexpected " <> t <> " token")
 
 filterScope :: P UsingExpr 
 filterScope = do 
@@ -243,56 +221,3 @@ filterScope = do
         "my_team_territory" -> pure $ MyTeamTerritory
         "team"              -> pure $ Team 
         _                   -> fail "unexepected filterScope token"
-
-    where 
-        getIdent = langToken $ \t -> case t of 
-            Ident x -> Just x
-            _       -> Nothing
-
-dateformula :: P DateFormula 
-dateformula = langToken $ \t -> case t of 
-    Yesterday               -> Just $ YESTERDAY 
-    Today                   -> Just $ TODAY 
-    Tomorrow                -> Just $ TOMORROW 
-    Last_week               -> Just $ LAST_WEEK 
-    This_week               -> Just $ THIS_WEEK 
-    Next_week               -> Just $ NEXT_WEEK 
-    Last_month              -> Just $ LAST_MONTH 
-    This_month              -> Just $ THIS_MONTH 
-    Next_month              -> Just $ NEXT_MONTH 
-    Last_90_days            -> Just $ LAST_90_DAYS 
-    Next_90_days            -> Just $ NEXT_90_DAYS 
-    This_quarter            -> Just $ THIS_QUARTER 
-    Last_quarter            -> Just $ LAST_QUARTER 
-    Next_quarter            -> Just $ NEXT_QUARTER 
-    This_year               -> Just $ THIS_YEAR 
-    Last_year               -> Just $ LAST_YEAR 
-    Next_year               -> Just $ NEXT_YEAR 
-    This_fiscal_quarter      -> Just $ THIS_FISCAL_QUARTER 
-    Last_fiscal_quarter      -> Just $ LAST_FISCAL_QUARTER 
-    Next_fiscal_quarter      -> Just $ NEXT_FISCAL_QUARTER 
-    This_fiscal_year         -> Just $ THIS_FISCAL_YEAR 
-    Last_fiscal_year         -> Just $ LAST_FISCAL_YEAR 
-    Next_fiscal_year         -> Just $ NEXT_FISCAL_YEAR 
-    Next_n_days i           -> Just $ NEXT_N_DAYS i
-    Last_n_days i           -> Just $ LAST_N_DAYS i
-    N_days_ago i            -> Just $ N_DAYS_AGO i
-    Next_n_weeks i          -> Just $ NEXT_N_WEEKS i
-    Last_n_weeks i          -> Just $ LAST_N_WEEKS i
-    N_weeks_ago i           -> Just $ N_WEEKS_AGO i
-    Next_n_months i         -> Just $ NEXT_N_MONTHS i
-    Last_n_months i         -> Just $ LAST_N_MONTHS i
-    N_months_ago i          -> Just $ N_MONTHS_AGO i
-    Next_n_quarters i       -> Just $ NEXT_N_QUARTERS i
-    Last_n_quarters i       -> Just $ LAST_N_QUARTERS i
-    N_quarters_ago i        -> Just $ N_QUARTERS_AGO i
-    Next_n_years i          -> Just $ NEXT_N_YEARS i
-    Last_n_years i          -> Just $ LAST_N_YEARS i
-    N_years_ago i           -> Just $ N_YEARS_AGO i
-    Next_n_fiscal_quarters i -> Just $ NEXT_N_FISCAL_QUARTERS i 
-    Last_n_fiscal_quarters i -> Just $ LAST_N_FISCAL_QUARTERS i 
-    N_fiscal_quarters_ago i  -> Just $ N_FISCAL_QUARTERS_AGO i 
-    Next_n_fiscal_years i    -> Just $ NEXT_N_FISCAL_YEARS i 
-    Last_n_fiscal_years i    -> Just $ LAST_N_FISCAL_YEARS i 
-    N_fiscal_years_ago i     -> Just $ N_FISCAL_YEARS_AGO i
-    _                       -> Nothing

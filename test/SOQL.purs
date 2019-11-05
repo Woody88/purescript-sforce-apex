@@ -1,16 +1,19 @@
 module Test.SOQL where 
 
-import Prelude (Unit, ($), (==), discard, mempty, pure)
+import Prelude (Unit, ($), (==), (<<<), discard, mempty, pure, map)
 import Control.Lazy (fix)
-import Data.List (List(..), (:), singleton)
+import Data.List (List(..), (:), singleton, fromFoldable)
 import Data.Maybe (Maybe(..))
 import Data.Either (Either(..), hush)
 import Data.Maybe (Maybe(..))
+import Data.String.Common (split)
+import Data.String.Pattern (Pattern(..))
 import Data.Tuple (Tuple(..))
 import Effect (Effect)
 import Effect.Aff (supervise)
 import Language.SOQL.Parser 
 import Language.SOQL.Syntax
+import Language.SOQL.Syntax.Types
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual, shouldReturn)
 import Text.Parsing.Parser (ParseError)
@@ -23,106 +26,116 @@ spec = do
             expected = Right (Name "CreatedDate") 
         parse x name `shouldEqual` expected
 
-    it "Name Ref" do
+    it "Field" do
         let x        = "Lead.Contact.Phone"
-            expected = Right (Ref (Name "Lead" : Name "Contact" : Name "Phone" : Nil))
-        parse x name `shouldEqual` expected
+            expected = Right (fieldT "Lead.Contact.Phone")
+        parse x field `shouldEqual` expected
+
+    it "functionSpec" do
+        let x        = "FORMAT(convertCurrency(amount))"
+            expected = Right (Tuple (MiscF FORMAT) (singleton $ FuncP (Tuple (MiscF CONVERT_CURRENCY) (singleton (FieldP $ fieldT "amount")))))
+        parse x functionExpr `shouldEqual` expected
 
     it "FieldExpr" do
         let x        = "CreatedDate > YESTERDAY"
-            expected = Right (FieldExpr (Name "CreatedDate") GT (DateFormula YESTERDAY))
+            expected = Right (FieldExpr (fieldT "CreatedDate") GT (DateFormula YESTERDAY))
         parse x fieldExpr `shouldEqual` expected
 
     it "SetExpr" do
         let x        = "BillingState IN ('California', 'New York')"
-            expected = Right (SetExpr (Name "BillingState") IN (String "California" : String "New York" : Nil))
+            expected = Right (SetExpr (fieldT "BillingState") IN (String "California" : String "New York" : Nil))
         parse x setExpr `shouldEqual` expected
 
     it "LogicalExpr" do
         let x        = "NOT Name = 'Salesforce'"
-            expected = Right (LogicalExpr (FieldExpr (Name "Name") EQ (String "Salesforce")) NOT Nothing)
+            expected = Right (LogicalExpr (FieldExpr (fieldT "Name") EQ (String "Salesforce")) NOT Nothing)
         parse x logicalExpr `shouldEqual` expected
 
     it "LogicalExpr Infix" do
         let x        = "Name = 'Salesforce' OR Name = 'SForce'"
-            expected = Right (LogicalExpr (FieldExpr (Name "Name") EQ (String "Salesforce")) OR (Just (FieldExpr (Name "Name") EQ (String "SForce"))))
+            expected = Right (LogicalExpr (FieldExpr (fieldT "Name") EQ (String "Salesforce")) OR (Just (FieldExpr (fieldT "Name") EQ (String "SForce"))))
         parse x logicalExpr `shouldEqual` expected
 
     describe "SimpleExpr" do 
         it "SExpr" do 
             let x        = "BillingState IN ('California', 'New York')"
-                expected = Right (SExpr (SetExpr (Name "BillingState") IN (String "California" : String "New York" : Nil)))
+                expected = Right (SExpr (SetExpr (fieldT "BillingState") IN (String "California" : String "New York" : Nil)))
             parse x simpleExpr `shouldEqual` expected
 
         it "FldExpr" do 
             let x        = "CreatedDate > YESTERDAY"
-                expected = Right (FldExpr (FieldExpr (Name "CreatedDate") GT (DateFormula YESTERDAY)))
+                expected = Right (FldExpr (FieldExpr (fieldT "CreatedDate") GT (DateFormula YESTERDAY)))
             parse x simpleExpr `shouldEqual` expected
 
         it "CondExpr" do 
             let x        = "(Name = 'Salesforce' OR Name = 'SForce')"
-                expected = Right (CondExpr (LogicExpr (LogicalExpr (FieldExpr (Name "Name") EQ (String "Salesforce")) OR (Just (FieldExpr (Name "Name") EQ (String "SForce"))))))
+                expected = Right (CondExpr (LogicExpr (LogicalExpr (FieldExpr (fieldT "Name") EQ (String "Salesforce")) OR (Just (FieldExpr (fieldT "Name") EQ (String "SForce"))))))
             parse x simpleExpr `shouldEqual` expected
 
     describe "ConditionExpr" do 
         it "LogicExpr" do
             let x        = "NOT Name = 'Salesforce'"
-                expected = Right (LogicExpr (LogicalExpr (FieldExpr (Name "Name") EQ (String "Salesforce")) NOT Nothing))
+                expected = Right (LogicExpr (LogicalExpr (FieldExpr (fieldT "Name") EQ (String "Salesforce")) NOT Nothing))
             parse x condExpr `shouldEqual` expected
-    
+
+    it "Select expr" do 
+        let x        = "SELECT c.Account a"
+            expected = Right (singleton $ Tuple (Field $ fieldT "c.Account") (Just $ Name "a"))
+        parse x selectExpr `shouldEqual` expected
+
     describe "Query Compilation" do 
         it "Simple Query" do 
             let x = "SELECT Account FROM Lead"
-                select_ = singleton $ Name "Account"
-                from_   = singleton $ Name "Lead" 
+                select_ = singleton $ Tuple (Field $ fieldT "Account") Nothing  
+                from_   = singleton $ Tuple (fieldT "Lead") Nothing   
                 expected = Right $ defaultQuery {select = select_, from = from_} 
             parse x queryCompilation `shouldEqual` expected
 
         it "Query with where clause" do 
             let x = "SELECT Account, RecordType FROM Lead WHERE Id = 'a9p000041321ACM'"
-                select_ = (Name "Account" : Name "RecordType" : mempty)
-                from_   = pure $ Name "Lead" 
-                where_ = (Just (SimplExpr (FldExpr (FieldExpr (Name "Id") EQ (String "a9p000041321ACM")))))
+                select_ = Tuple (Field $ fieldT "Account") Nothing  : Tuple (Field $ fieldT "RecordType") Nothing : mempty 
+                from_   = singleton $ Tuple (fieldT "Lead") Nothing  
+                where_ = (Just (SimplExpr (FldExpr (FieldExpr (fieldT "Id") EQ (String "a9p000041321ACM")))))
                 expected = Right $ defaultQuery {select = select_, from = from_, "where" = where_}
             parse x queryCompilation `shouldEqual` expected
         
         it "Query with where and using clause" do 
             let x = "SELECT Account, RecordType FROM Lead USING SCOPE Mine WHERE Id = 'a9p000041321ACM'"
-                select_ = (Name "Account" : Name "RecordType" : mempty)
-                from_   = singleton $ Name "Lead" 
-                where_ = (Just (SimplExpr (FldExpr (FieldExpr (Name "Id") EQ (String "a9p000041321ACM")))))
+                select_ = Tuple (Field $ fieldT "Account") Nothing  : Tuple (Field $ fieldT "RecordType") Nothing : mempty 
+                from_   = singleton $ Tuple (fieldT "Lead") Nothing  
+                where_ = (Just (SimplExpr (FldExpr (FieldExpr (fieldT "Id") EQ (String "a9p000041321ACM")))))
                 using_  = Just Mine
                 expected = Right $ defaultQuery {select = select_, from = from_, "where" = where_, using = using_}
             parse x queryCompilation `shouldEqual` expected
 
         it "Query with where, using, and order by clause" do 
             let x = "SELECT Account, RecordType FROM Lead USING SCOPE Mine WHERE Id = 'a9p000041321ACM' Order By Account Asc Nulls Last"
-                select_ = (Name "Account" : Name "RecordType" : mempty)
-                from_   = singleton $ Name "Lead" 
-                where_ = (Just (SimplExpr (FldExpr (FieldExpr (Name "Id") EQ (String "a9p000041321ACM")))))
+                select_ = Tuple (Field $ fieldT "Account") Nothing  : Tuple (Field $ fieldT "RecordType") Nothing : mempty 
+                from_   = singleton $ Tuple (fieldT "Lead") Nothing  
+                where_ = (Just (SimplExpr (FldExpr (FieldExpr (fieldT "Id") EQ (String "a9p000041321ACM")))))
                 using_  = Just Mine
-                orderBy_ = Just (OrderByExpr (singleton (Name "Account")) Asc Last)
+                orderBy_ = Just (OrderByExpr (singleton $ Tuple (fieldT "Account") Nothing) Asc Last)
                 expected = Right $ defaultQuery {select = select_, from = from_, "where" = where_, using = using_, orderBy = orderBy_}
             parse x queryCompilation `shouldEqual` expected
 
         it "Query with where, using, order by, and limit clause" do 
             let x = "SELECT Account, RecordType FROM Lead USING SCOPE Mine WHERE Id = 'a9p000041321ACM' Order By Account Asc Nulls Last Limit 10"
-                select_ = (Name "Account" : Name "RecordType" : mempty)
-                from_   = singleton $ Name "Lead" 
-                where_ = (Just (SimplExpr (FldExpr (FieldExpr (Name "Id") EQ (String "a9p000041321ACM")))))
+                select_ = Tuple (Field $ fieldT "Account") Nothing  : Tuple (Field $ fieldT "RecordType") Nothing : mempty 
+                from_   = singleton $ Tuple (fieldT "Lead") Nothing  
+                where_ = (Just (SimplExpr (FldExpr (FieldExpr (fieldT "Id") EQ (String "a9p000041321ACM")))))
                 using_  = Just Mine
-                orderBy_ = Just (OrderByExpr (singleton (Name "Account")) Asc Last)
+                orderBy_ = Just (OrderByExpr (singleton $ Tuple (fieldT "Account") Nothing) Asc Last)
                 limit_ = Just (Integer 10) 
                 expected = Right $ defaultQuery {select = select_, from = from_, "where" = where_, using = using_, orderBy = orderBy_, limit = limit_}
             parse x queryCompilation `shouldEqual` expected
 
         it "Query with where, using, order by, limit, and offset clause" do 
             let x = "SELECT Account, RecordType FROM Lead USING SCOPE Mine WHERE Id = 'a9p000041321ACM' Order By Account Asc Nulls Last Limit 10 OFFSET 10"
-                select_ = (Name "Account" : Name "RecordType" : mempty)
-                from_   = singleton $ Name "Lead" 
-                where_ = (Just (SimplExpr (FldExpr (FieldExpr (Name "Id") EQ (String "a9p000041321ACM")))))
+                select_ = Tuple (Field $ fieldT "Account") Nothing  : Tuple (Field $ fieldT "RecordType") Nothing : mempty 
+                from_   = singleton $ Tuple (fieldT "Lead") Nothing  
+                where_ = (Just (SimplExpr (FldExpr (FieldExpr (fieldT "Id") EQ (String "a9p000041321ACM")))))
                 using_  = Just Mine
-                orderBy_ = Just (OrderByExpr (singleton (Name "Account")) Asc Last)
+                orderBy_ = Just (OrderByExpr (singleton $ Tuple (fieldT "Account") Nothing) Asc Last)
                 limit_ = Just (Integer 10) 
                 offset_ = Just (Integer 10)
                 expected = Right $ defaultQuery {select = select_, from = from_, "where" = where_, using = using_, orderBy = orderBy_, limit = limit_, offset = offset_}
@@ -130,17 +143,17 @@ spec = do
 
         it "Query with update clause" do 
             let x = "SELECT Title FROM FAQ__kav WHERE Keyword = 'Apex' UPDATE TRACKING"
-                select_ = singleton $ Name "Title" 
-                from_   = singleton $ Name "FAQ__kav" 
-                where_ = (Just (SimplExpr (FldExpr (FieldExpr (Name "Keyword") EQ (String "Apex")))))
+                select_ = singleton $ Tuple (Field $ fieldT "Title") Nothing  
+                from_   = singleton $ Tuple (fieldT "FAQ__kav") Nothing 
+                where_ = (Just (SimplExpr (FldExpr (FieldExpr (fieldT "Keyword") EQ (String "Apex")))))
                 update_ = Just $ singleton Tracking 
                 expected = Right $ defaultQuery {select = select_, from = from_, "where" = where_, update = update_}
             parse x queryCompilation `shouldEqual` expected
 
         it "Query with for clause" do 
             let x = "SELECT Id FROM Account LIMIT 2 FOR UPDATE"
-                select_ = singleton $ Name "Id" 
-                from_   = singleton $ Name "Account" 
+                select_ = singleton $ Tuple (Field $ fieldT "Id") Nothing 
+                from_   = singleton $ Tuple (fieldT "Account") Nothing 
                 limit_ = Just (Integer 2) 
                 for_ = Just $ singleton Update
                 expected = Right $ defaultQuery {select = select_, from = from_, limit = limit_, for = for_}
@@ -148,13 +161,15 @@ spec = do
 
         it "Query with clause" do 
             let x = "SELECT Title FROM Question WHERE LastReplyDate < 2005-10-08T01:02:03Z WITH DATA CATEGORY Product__c AT mobile_phones__c AND Product__c BELOW All__c"
-                select_ = singleton $ Name "Title" 
-                from_   = singleton $ Name "Question" 
-                where_ = (Just (SimplExpr (FldExpr (FieldExpr (Name "LastReplyDate") LT (Datetime "2005-10-08T01:02:03Z")))))
-                with_ = Just (FilterExpr (DataCategorySelection (Name "Product__c") At (Name "mobile_phones__c")) (Just (Tuple AND (FilterExpr (DataCategorySelection (Name "Product__c") Below (Name "All__c")) Nothing))))
+                select_ = singleton $ Tuple (Field $ fieldT "Title") Nothing
+                from_   = singleton $ Tuple (fieldT "Question") Nothing  
+                where_ = (Just (SimplExpr (FldExpr (FieldExpr (fieldT "LastReplyDate") LT (Datetime "2005-10-08T01:02:03Z")))))
+                with_ = Just (FilterExpr (DataCategorySelection (fieldT "Product__c") At (fieldT "mobile_phones__c")) (Just (Tuple AND (FilterExpr (DataCategorySelection (fieldT "Product__c") Below (fieldT "All__c")) Nothing))))
                 expected = Right $ defaultQuery {select = select_, from = from_, "where" = where_, with = with_}
             parse x queryCompilation `shouldEqual` expected
 
+fieldT :: String -> Field
+fieldT = map Name <<< fromFoldable <<< split (Pattern ".") 
 
 defaultQuery :: Query 
 defaultQuery = 

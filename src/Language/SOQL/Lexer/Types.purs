@@ -25,18 +25,18 @@ data Token =
     | Op_Not  | Op_Or | Op_Excludes | Op_Includes | Op_And | Op_Like
 
     -- Date Functions
-    | Calendar_month | Calendar_quarter | Calendar_year | Day_in_month 
-    | Day_in_week | Day_in_year | Day_only | Fiscal_month | Fiscal_quarter 
-    | Fiscal_year | Hour_in_day | Week_in_month | Week_in_year
+    | KW_Calendar_month | KW_Calendar_quarter | KW_Calendar_year | KW_Day_in_month 
+    | KW_Day_in_week | KW_Day_in_year | KW_Day_only | KW_Fiscal_month | KW_Fiscal_quarter 
+    | KW_Fiscal_year | KW_Hour_in_day | KW_Week_in_month | KW_Week_in_year
 
     -- Aggregate Functions
-    | Avg | Count | Count_distinct | Min | Max | Sum
+    | KW_Avg | KW_Count | KW_Count_distinct | KW_Min | KW_Max | KW_Sum
 
     -- Location Functions
-    | Distance | Geolocation
+    | KW_Distance | KW_Geolocation
 
     --Other Functions
-    | Format | Tolabel | Convert_time_zone | Convert_currency | Grouping
+    | KW_Format | KW_Tolabel | KW_Convert_time_zone | KW_Convert_currency | KW_Grouping
 
     -- Symbols
     | Period | Colon | SemiColon | Comma | Asterisk | OpenParen | CloseParen | Plus | Minus 
