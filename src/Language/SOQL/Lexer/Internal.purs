@@ -101,11 +101,14 @@ readToken =
     try (KW_Hour_in_day          <=: funcLiteral "hour_in_day" ) <|> 
     try (KW_Week_in_month        <=: funcLiteral "week_in_month" ) <|> 
     try (KW_Week_in_year         <=: funcLiteral "week_in_year" )  <|>
+    try (KW_When      <=: istring "when"    )    <|>
     try (KW_Asc       <=: istring "asc"     )    <|>  
     try (KW_As        <=: istring "as"      )    <|>    
     try (KW_OrderBy   <=: istring "order by")    <|>   
     try (KW_Cube      <=: istring "cube"    )    <|>   
-    try (KW_Desc      <=: istring "desc"    )    <|>   
+    try (KW_Desc      <=: istring "desc"    )    <|>  
+    try (KW_Then      <=: istring "then"    )    <|>  
+    try (KW_End       <=: istring "end"    )     <|>  
     try (KW_Else      <=: istring "else"    )    <|>   
     try (KW_NullFirst <=: istring "nulls first")  <|>   
     try (KW_From      <=: istring "from"    )    <|>   
@@ -145,7 +148,7 @@ readToken =
     try (Op_Eq        <=: char '=')       <|> 
     try (Op_GThan     <=: char '>')       <|>
     try (Op_LThan     <=: char '<')       <|>
-    try (NullTok      <=:  nullLiteral)   <|>   
+    try (NullTok      <=: nullLiteral)    <|>   
     try (Ident        <<=: javaLexer.identifier )
     where 
         notEqual = (string "<>" <|> string "!=")

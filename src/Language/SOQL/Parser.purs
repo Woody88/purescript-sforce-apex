@@ -10,7 +10,7 @@ import Data.List (List, singleton)
 import Data.Maybe (Maybe(..))
 import Data.String.Common (toLower)
 import Data.Tuple (Tuple(..))
-import Language.Internal (langToken, tok, seplist, seplist1, lopt, list, optMaybe)
+import Language.Internal (langToken, tok, seplist, seplist1, lopt, list, list1, optMaybe)
 import Language.Types (L)
 import Language.SOQL.Lexer (lexSOQL)
 import Language.SOQL.Lexer.Types (Token(..))
@@ -45,7 +45,11 @@ selectExpr = do
     seplist1 selectParam comma
     
 selectClause :: P SelectClause 
-selectClause =  try (Field <$> field) <|> Func <$> functionExpr
+selectClause = try typeOf <|> try simplField <|> funcField
+    where 
+        simplField = Field <$> field
+        typeOf = TypeOf <$> typeofExpr
+        funcField = Func <$> functionExpr
 
 fromExpr :: P ObjectTypeExpr
 fromExpr = do 
@@ -106,6 +110,24 @@ withExpr = do
     tok' "with"
     optional (tok' "data" *> tok' "category")
     filterExpr
+
+typeofExpr :: P TypeofExpr
+typeofExpr = do 
+    tok' "typeof" 
+    typeOfField   <- name
+    whenThen      <- list1 whenThenClause
+    tok KW_Else 
+    elseFieldList <- seplist field comma
+    tok KW_End 
+    pure $ TypeofExpr typeOfField whenThen elseFieldList
+
+whenThenClause :: P WhenThenClause 
+whenThenClause = do
+    tok KW_When 
+    whenObjectType <- name
+    tok KW_Then 
+    whenFieldList <- seplist1 field comma
+    pure $ Tuple whenObjectType whenFieldList
 
 filterExpr :: P FilterExpr
 filterExpr = do 

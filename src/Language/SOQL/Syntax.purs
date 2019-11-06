@@ -22,7 +22,7 @@ data FunctionParameter = FieldP Field | FuncP FunctionExpr
 
 type SelectExpr = List (Tuple SelectClause (Maybe Alias))
 
-data SelectClause = Field Field | Func FunctionExpr
+data SelectClause = Field Field | TypeOf TypeofExpr | Func FunctionExpr 
 
 type ObjectTypeExpr = List (Tuple Field (Maybe Alias)) 
 
@@ -60,9 +60,15 @@ data FilterSelector = At | Above | Below | Above_Or_Below
 
 data DataCategorySelection = DataCategorySelection Field FilterSelector Field 
 
+type WithExpr = FilterExpr
+
 data FilterExpr = FilterExpr DataCategorySelection (Maybe (Tuple LogicalOperator FilterExpr))
 
-type WithExpr = FilterExpr
+data TypeofExpr = TypeofExpr Name (List WhenThenClause) ElseClause
+
+type WhenThenClause = Tuple Name (List Field)
+
+type ElseClause = List Field 
 
 type Query 
     = { select  :: SelectExpr 
@@ -94,6 +100,7 @@ derive instance genericFilterExpr :: Generic FilterExpr _
 derive instance genericFunctionName :: Generic FunctionName _ 
 derive instance genericFunctionParameter :: Generic FunctionParameter _ 
 derive instance genericSelectClause :: Generic SelectClause _ 
+derive instance genericTypeofExpr :: Generic TypeofExpr _ 
 
 derive instance eqFieldExpr :: Eq FieldExpr 
 derive instance eqSetExpr :: Eq SetExpr 
@@ -112,6 +119,7 @@ derive instance eqFilterExpr :: Eq FilterExpr
 derive instance eqFunctionName :: Eq FunctionName 
 derive instance eqFunctionParameter :: Eq FunctionParameter 
 derive instance eqSelectClause :: Eq SelectClause 
+derive instance eqTypeofExpr :: Eq TypeofExpr 
 
 instance showFieldExpr :: Show FieldExpr where 
     show = genericShow 
@@ -165,3 +173,5 @@ instance showFunctionParameter :: Show FunctionParameter where
 instance showSelectClause :: Show SelectClause where 
     show x = genericShow x
     
+instance showTypeofExpr :: Show TypeofExpr where 
+    show x = genericShow x

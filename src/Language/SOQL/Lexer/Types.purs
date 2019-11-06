@@ -13,8 +13,8 @@ data Token =
     -- Reserved Keywords 
     KW_As | KW_Asc | KW_OrderBy | KW_Cube | KW_Desc | KW_Else 
     | KW_NullFirst | KW_From | KW_Group | KW_Having  | KW_NullLast  
-    | KW_Limit | KW_Rollup | KW_Select | KW_Using 
-    | KW_Where | KW_For | KW_Update 
+    | KW_Limit | KW_Rollup | KW_Select | KW_Using | KW_When | KW_End
+    | KW_Where | KW_For | KW_Update | KW_Then 
 
     -- Literals 
     | IntegerTok Int | LongTok BigInt | DoubleTok Number | StringTok String | BoolTok Boolean 

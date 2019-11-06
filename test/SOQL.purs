@@ -6,7 +6,7 @@ import Data.List (List(..), (:), singleton, fromFoldable)
 import Data.Maybe (Maybe(..))
 import Data.Either (Either(..), hush)
 import Data.Maybe (Maybe(..))
-import Data.String.Common (split)
+import Data.String.Common (split, trim)
 import Data.String.Pattern (Pattern(..))
 import Data.Tuple (Tuple(..))
 import Effect (Effect)
@@ -168,8 +168,28 @@ spec = do
                 expected = Right $ defaultQuery {select = select_, from = from_, "where" = where_, with = with_}
             parse x queryCompilation `shouldEqual` expected
 
+        it "Query typeof clause" do 
+            let x = """SELECT 
+                        TYPEOF What
+                            WHEN Account THEN Phone, NumberOfEmployees
+                            WHEN Opportunity THEN Amount, CloseDate
+                            ELSE Name, Email
+                        END
+                        FROM Event"""
+                select_ = singleton $ Tuple (TypeOf $ typeof) Nothing
+                typeof  = TypeofExpr 
+                            (Name "What") 
+                            (Tuple (Name "Account") (fieldListT "Phone,NumberOfEmployees") : Tuple (Name "Opportunity") (fieldListT "Amount,CloseDate") : mempty) 
+                            (fieldListT "Name,Email")
+                from_   = singleton $ Tuple (fieldT "Event") Nothing  
+                expected = Right $ defaultQuery {select = select_, from = from_}            
+            parse x queryCompilation `shouldEqual` expected
+
 fieldT :: String -> Field
-fieldT = map Name <<< fromFoldable <<< split (Pattern ".") 
+fieldT = map Name <<< fromFoldable <<< split (Pattern ".") <<< trim
+
+fieldListT :: String -> List Field 
+fieldListT = map fieldT <<< fromFoldable <<< split (Pattern ",") <<< trim
 
 defaultQuery :: Query 
 defaultQuery = 
