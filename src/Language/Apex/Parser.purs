@@ -16,10 +16,10 @@ import Data.Maybe (Maybe(..), isJust, fromMaybe, maybe)
 import Data.Newtype as Newtype
 import Data.Tuple (Tuple(..))
 import Language.Apex.Lexer (lexApex)
-import Language.Apex.Lexer.Types (Token(..))
+import Language.Types (Token(..))
 import Language.Types (L(..))
 import Language.Internal (langToken, optMaybe, empty, bopt, lopt, tok, seplist, seplist1, list, list1)
-import Language.Apex.Syntax.Types (ClassType(..), Ident(..), Literal(..), Name(..), PrimType(..), RefType(..), Type(..), TypeArgument(..), TypeParam(..))
+import Language.Apex.Syntax.Types (DML(..), ClassType(..), Ident(..), Literal(..), Name(..), PrimType(..), RefType(..), Type(..), TypeArgument(..), TypeParam(..))
 import Text.Parsing.Parser (ParseState(..), Parser, ParseError, runParser, fail)
 import Text.Parsing.Parser.Combinators ((<?>))
 import Text.Parsing.Parser.Combinators as PC
@@ -29,8 +29,8 @@ type P = Parser (List (L Token))
 
 ------------- Top Level parsing -----------------
 
-parseCompilationUnit :: String -> Either ParseError CompilationUnit
-parseCompilationUnit input = runParser (lexApex input) compilationUnit
+-- parseCompilationUnit :: String -> Either ParseError CompilationUnit
+-- parseCompilationUnit input = runParser (lexApex input) compilationUnit
 
 ------------- Compilation Unit -----------------
 compilationUnit :: P CompilationUnit
@@ -46,6 +46,16 @@ literal = langToken $ \t -> case t of
     StringTok  s -> Just (String s)
     BoolTok    b -> Just (Boolean b)
     NullTok      -> Just Null 
+    _ -> Nothing
+
+dml :: P DML 
+dml = langToken $ \t -> case t of
+    KW_Update   -> Just $ Update
+    KW_Insert   -> Just $ Insert
+    KW_Upsert   -> Just $ Upsert
+    KW_Delete   -> Just $ Delete
+    KW_Undelete -> Just $ Undelete
+    KW_Merge    -> Just $ Merge   
     _ -> Nothing
 
 name :: P Name
@@ -329,13 +339,20 @@ assignExp = fix $ \_ -> PC.try methodRef <|> PC.try assignment <|> condExp
 
 stmtExp :: P Exp
 stmtExp = fix $ \_ -> 
-    PC.try preIncDec
+    PC.try dmlExp 
+    <|> PC.try preIncDec
     <|> PC.try postIncDec
     <|> PC.try assignment
     <|> PC.try methodInvocationExp
     <|> PC.try methodRef
     <|> instanceCreation
     <?> "unexpected statement expression"
+
+dmlExp :: P Exp 
+dmlExp = do 
+    d <- dml
+    n <- name
+    pure $ DML d (ExpName n)
 
 preIncDec :: P Exp
 preIncDec = do

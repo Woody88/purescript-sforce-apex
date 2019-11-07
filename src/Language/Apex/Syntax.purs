@@ -26,6 +26,7 @@ data AssignOp = EqualA  | MultA   | DivA     | RemA | AddA | SubA
 
 data Exp 
     = Lit Literal
+    | DML DML Exp
     -- | A class literal, which is an expression consisting of the name of a class, interface, array,
     --   or primitive type, or the pseudo-type void (modelled by 'Nothing'), followed by a `.' and the token class.
     | ClassLit (Maybe Type)

@@ -5,11 +5,15 @@ import Control.Alt ((<|>))
 import Control.Monad.State (gets, modify_)
 import Control.Monad.Rec.Class (class MonadRec)
 import Data.List (List, (:), uncons, singleton, someRec)
-import Data.Newtype (unwrap)
+import Data.Newtype (unwrap, wrap)
 import Data.Maybe (Maybe(..), isJust)
-import Language.Types (L(..))
+import Data.String (drop, length, toLower)
+import Language.Types (L(..), Token, P, Pos(..))
 import Text.Parsing.Parser.Combinators (optionMaybe, try, option)
-import Text.Parsing.Parser (ParseState(..), ParserT, fail)
+import Text.Parsing.Parser (ParseState(..), ParserT, fail, position)
+import Text.Parsing.Parser.Pos (updatePosString)
+import Text.Parsing.Parser.String (indexOf)
+
 
 langToken :: forall m s a t. Monad m => Show t => (t -> Maybe a) -> ParserT (List (L t)) m a
 langToken test =  token posT showT testT
@@ -66,3 +70,36 @@ list = option mempty <<< list1
 
 list1 :: forall m s a. Monad m => MonadRec m => ParserT s m a -> ParserT s m (List a)
 list1 = someRec
+
+-- | Match the specified string - case insensitive .
+istring :: String -> P String
+istring str = do
+  input <- gets \(ParseState input _ _) -> input
+  case indexOf (wrap str) (toLower input) of
+    Just 0 -> do
+      modify_ \(ParseState _ position _) ->
+        ParseState (drop (length str) input)
+                   (updatePosString position str)
+                   true
+      pure str
+    _ -> fail ("Expected " <> show str)
+
+-- | Match one or more times.
+many1 :: forall a. P a -> P (List a)
+many1 = someRec
+
+infixr 6 mkToken as <=:
+
+infixr 6 mkTokenWith as <<=:
+
+mkToken :: forall a. Token -> P a -> P (L Token)
+mkToken t p = do
+    pos <- position
+    _ <- p
+    pure (L (Pos pos) t)
+
+mkTokenWith :: forall a. (a -> Token) -> P a -> P (L Token)
+mkTokenWith t p = do
+    pos <- position
+    m <- p
+    pure (L (Pos pos) $ t m)

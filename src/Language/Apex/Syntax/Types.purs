@@ -7,6 +7,7 @@ import Data.List (List)
 import Data.BigInt (BigInt)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
+import Language.SOQL.Syntax (Query)
 
 
 -- | A literal denotes a fixed, unchanging value.
@@ -16,7 +17,10 @@ data Literal
     | Long BigInt
     | Boolean Boolean
     | String String
+    | SOQL Query
     | Null
+
+data DML = Update | Insert | Upsert | Delete | Undelete | Merge
 
 -- | There are two kinds of types in the Java programming language: primitive types and reference types.
 data Type
@@ -69,6 +73,7 @@ derive instance genericRefType :: Generic RefType _
 derive instance genericClassType :: Generic ClassType _
 derive instance genericTypeArgument :: Generic TypeArgument _
 derive instance genericTypeParam :: Generic TypeParam _
+derive instance genericDML :: Generic DML _
 
 derive instance eqRefType :: Eq RefType
 derive instance eqClassType :: Eq ClassType
@@ -77,6 +82,7 @@ derive instance eqTypeParam :: Eq TypeParam
 derive instance eqType :: Eq Type
 derive instance eqPrimType :: Eq PrimType
 derive instance eqLiteral :: Eq Literal
+derive instance eqDML :: Eq DML
 
 instance showRefType :: Show RefType where 
     show (ClassRefType c) = "ClassRefType " <> show c 
@@ -109,6 +115,9 @@ instance showPrimType :: Show PrimType where
     show DoubleT = "double"
 
 instance showLiteral :: Show Literal where 
+    show = genericShow 
+
+instance showDML :: Show DML where 
     show = genericShow 
 -----------------------------------------------------------------------
 -- Names and identifiers

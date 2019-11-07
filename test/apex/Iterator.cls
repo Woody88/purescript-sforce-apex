@@ -1,5 +1,4 @@
 // https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_classes_iterable.htm
-
 global class batchClass implements Database.batchable<Account>{ 
    global Iterable<Account> start(Database.batchableContext info){ 
        return new example(); 
@@ -13,6 +12,5 @@ global class batchClass implements Database.batchable<Account>{
        } 
        update accsToUpdate; 
    }     
-   global void finish(Database.batchableContext info){     
-   } 
+   global void finish(Database.batchableContext info){ } 
 }

@@ -1,9 +1,12 @@
 module Language.Apex.Lexer.Types where 
 
 import Prelude
+import Data.List (List)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.BigInt
+import Language.Types (L)
+import Language.SOQL.Lexer.Types as SOQL
 import Text.Parsing.Parser (Parser)
 
 type P = Parser String 
@@ -25,7 +28,7 @@ data Token  =
     | OpenParen | CloseParen | OpenSquare | CloseSquare | OpenCurly | CloseCurly | SemiColon | Comma | Period 
 
     -- Literals 
-    | IntegerTok Int | LongTok BigInt | DoubleTok Number | CharTok Char | StringTok String | BoolTok Boolean | NullTok
+    | IntegerTok Int | LongTok BigInt | DoubleTok Number | CharTok Char | StringTok String | BoolTok Boolean | KW_SOQL String | NullTok
 
     -- Identifiers
     | IdentTok String 
