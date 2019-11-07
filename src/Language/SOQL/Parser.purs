@@ -32,12 +32,13 @@ queryCompilation = do
     where_  <- optMaybe whereExpr
     with    <- optMaybe withExpr
     groupBy <- optMaybe groupByExpr
+    having  <- optMaybe havingExpr
     orderBy <- optMaybe orderByExpr
     limit   <- optMaybe limitExpr 
     offset  <- optMaybe offsetExpr 
     update  <- optMaybe updateExpr
     for     <- optMaybe forExpr 
-    pure $ {select, from, "where": where_, with, using, orderBy, groupBy, limit, offset, update, for}
+    pure $ {select, from, "where": where_, with, using, orderBy, groupBy, having, limit, offset, update, for}
 
 selectExpr :: P SelectExpr
 selectExpr = do  
@@ -46,11 +47,10 @@ selectExpr = do
     seplist1 selectParam comma
     
 selectClause :: P SelectClause 
-selectClause = try typeOf <|> try simplField <|> funcField
+selectClause = try typeOf <|> fldOrFunc
     where 
-        simplField = Field <$> field
+        fldOrFunc = FOF <$> fieldOrFunc
         typeOf = TypeOf <$> typeofExpr
-        funcField = Func <$> functionExpr
 
 fromExpr :: P ObjectTypeExpr
 fromExpr = do 
@@ -93,6 +93,11 @@ groupByExpr = try simplField <|> try rollup <|> cube
         simplField = tok KW_GroupBy *> (FieldG <$> (seplist1 field comma)) 
         rollup = tok KW_GroupByRollup *> (Rollup <$> (parens $ seplist1 field comma))
         cube = tok KW_GroupByCube *> (Cube <$> (parens $ seplist1 field comma)) 
+
+havingExpr :: P ConditionExpr
+havingExpr = do 
+    tok KW_Having
+    condExpr
 
 limitExpr :: P LimitExpr
 limitExpr = do 
@@ -194,10 +199,10 @@ logicalExpr =
             pure $ LogicalExpr fexp lop Nothing
 
 setExpr :: P SetExpr 
-setExpr = SetExpr <$> field <*> coperator <*> parens (seplist1 value comma)
+setExpr = SetExpr <$> fieldOrFunc <*> coperator <*> parens (seplist1 value comma)
 
 fieldExpr :: P FieldExpr 
-fieldExpr = FieldExpr <$> field <*> coperator <*> value 
+fieldExpr = FieldExpr <$> fieldOrFunc <*> coperator <*> value 
 
 functionExpr :: P FunctionExpr
 functionExpr = Tuple <$> functionName <*> parens (seplist (fix $ \_ -> functionParameter) comma)
@@ -211,6 +216,12 @@ functionName =
 
 functionParameter :: P FunctionParameter 
 functionParameter = try (FieldP <$> field) <|> (FuncP <$> (fix $ \_ -> functionExpr))
+
+fieldOrFunc :: P FieldOrFunc
+fieldOrFunc = try simplField <|> funcField
+    where 
+        simplField = Field <$> field
+        funcField  = Func <$> functionExpr
 
 valueList :: P (List Value)
 valueList = seplist1 value comma

@@ -22,13 +22,15 @@ data FunctionParameter = FieldP Field | FuncP FunctionExpr
 
 type SelectExpr = List (Tuple SelectClause (Maybe Alias))
 
-data SelectClause = Field Field | TypeOf TypeofExpr | Func FunctionExpr 
+data SelectClause = FOF FieldOrFunc | TypeOf TypeofExpr 
 
 type ObjectTypeExpr = List (Tuple Field (Maybe Alias)) 
 
-data FieldExpr = FieldExpr Field CompirasonOperator Value 
+data FieldExpr = FieldExpr FieldOrFunc CompirasonOperator Value 
 
-data SetExpr = SetExpr Field CompirasonOperator (List Value) 
+data FieldOrFunc = Field Field | Func FunctionExpr
+
+data SetExpr = SetExpr FieldOrFunc CompirasonOperator (List Value) 
 
 data LogicalExpr = LogicalExpr FieldExpr LogicalOperator (Maybe FieldExpr)
 
@@ -82,12 +84,14 @@ type Query
       , using   :: Maybe UsingExpr 
       , orderBy :: Maybe OrderByExpr
       , groupBy :: Maybe GroupByExpr
+      , having  :: Maybe ConditionExpr
       , limit   :: Maybe LimitExpr
       , offset  :: Maybe OffsetExpr
       , for     :: Maybe (List ForExpr)
       , update  :: Maybe (List UpdateExpr)
       } 
 
+derive instance genericFieldOrFunc :: Generic FieldOrFunc _ 
 derive instance genericFieldExpr :: Generic FieldExpr _ 
 derive instance genericSetExpr :: Generic SetExpr _ 
 derive instance genericLogicalExpr :: Generic LogicalExpr _ 
@@ -109,6 +113,7 @@ derive instance genericSelectClause :: Generic SelectClause _
 derive instance genericTypeofExpr :: Generic TypeofExpr _ 
 derive instance genericGroupByExpr :: Generic GroupByExpr _ 
 
+derive instance eqFieldOrFunc :: Eq FieldOrFunc
 derive instance eqFieldExpr :: Eq FieldExpr 
 derive instance eqSetExpr :: Eq SetExpr 
 derive instance eqLogicalExpr :: Eq LogicalExpr 
@@ -129,6 +134,9 @@ derive instance eqFunctionParameter :: Eq FunctionParameter
 derive instance eqSelectClause :: Eq SelectClause 
 derive instance eqTypeofExpr :: Eq TypeofExpr 
 derive instance eqGroupByExpr :: Eq GroupByExpr 
+
+instance showFieldOrFunc :: Show FieldOrFunc where 
+    show = genericShow 
 
 instance showFieldExpr :: Show FieldExpr where 
     show = genericShow 
