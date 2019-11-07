@@ -114,7 +114,7 @@ spec = do
                 from_   = singleton $ Tuple (fieldT "Lead") Nothing  
                 where_ = (Just (SimplExpr (FldExpr (FieldExpr (fieldT "Id") EQ (String "a9p000041321ACM")))))
                 using_  = Just Mine
-                orderBy_ = Just (OrderByExpr (singleton $ Tuple (fieldT "Account") Nothing) Asc Last)
+                orderBy_ = Just (OrderByExpr (singleton $ Tuple (FieldO $ fieldT "Account") Nothing) (Just Asc) (Just Last))
                 expected = Right $ defaultQuery {select = select_, from = from_, "where" = where_, using = using_, orderBy = orderBy_}
             parse x queryCompilation `shouldEqual` expected
 
@@ -124,7 +124,7 @@ spec = do
                 from_   = singleton $ Tuple (fieldT "Lead") Nothing  
                 where_ = (Just (SimplExpr (FldExpr (FieldExpr (fieldT "Id") EQ (String "a9p000041321ACM")))))
                 using_  = Just Mine
-                orderBy_ = Just (OrderByExpr (singleton $ Tuple (fieldT "Account") Nothing) Asc Last)
+                orderBy_ = Just (OrderByExpr (singleton $ Tuple (FieldO $ fieldT "Account") Nothing) (Just Asc) (Just Last))
                 limit_ = Just (Integer 10) 
                 expected = Right $ defaultQuery {select = select_, from = from_, "where" = where_, using = using_, orderBy = orderBy_, limit = limit_}
             parse x queryCompilation `shouldEqual` expected
@@ -135,7 +135,7 @@ spec = do
                 from_   = singleton $ Tuple (fieldT "Lead") Nothing  
                 where_ = (Just (SimplExpr (FldExpr (FieldExpr (fieldT "Id") EQ (String "a9p000041321ACM")))))
                 using_  = Just Mine
-                orderBy_ = Just (OrderByExpr (singleton $ Tuple (fieldT "Account") Nothing) Asc Last)
+                orderBy_ = Just (OrderByExpr (singleton $ Tuple (FieldO $ fieldT "Account") Nothing) (Just Asc) (Just Last))
                 limit_ = Just (Integer 10) 
                 offset_ = Just (Integer 10)
                 expected = Right $ defaultQuery {select = select_, from = from_, "where" = where_, using = using_, orderBy = orderBy_, limit = limit_, offset = offset_}
@@ -185,6 +185,47 @@ spec = do
                 expected = Right $ defaultQuery {select = select_, from = from_}            
             parse x queryCompilation `shouldEqual` expected
 
+        it "Query group by clause" do 
+            let x = "SELECT LeadSource FROM Lead GROUP BY LeadSource"
+                select_ = singleton $ Tuple (Field $ fieldT "LeadSource") Nothing 
+                from_   = singleton $ Tuple (fieldT "Lead") Nothing 
+                groupBy_ = Just $ FieldG $ fieldListT "LeadSource"
+                expected = Right $ defaultQuery {select = select_, from = from_, groupBy = groupBy_}
+            parse x queryCompilation `shouldEqual` expected
+
+        it "Query group by rollup clause" do 
+            let x = "SELECT LeadSource FROM Lead GROUP BY ROLLUP(LeadSource)"
+                select_ = singleton $ Tuple (Field $ fieldT "LeadSource") Nothing 
+                from_   = singleton $ Tuple (fieldT "Lead") Nothing 
+                groupBy_ = Just $ Rollup $ fieldListT "LeadSource"
+                expected = Right $ defaultQuery {select = select_, from = from_, groupBy = groupBy_}
+            parse x queryCompilation `shouldEqual` expected
+
+        it "Query group by cube clause" do 
+            let x = """SELECT Type, BillingCountry,
+                            GROUPING(Type) grpType, GROUPING(BillingCountry) grpCty,
+                            COUNT(id) accts
+                        FROM Account
+                        GROUP BY CUBE(Type, BillingCountry)
+                        ORDER BY GROUPING(Type), GROUPING(BillingCountry)"""
+                select_ = (Tuple (Field $ fieldT "Type") Nothing : 
+                           Tuple (Field $ fieldT "BillingCountry") Nothing : 
+                           Tuple (Func $ Tuple (MiscF GROUPING) (singleton $ FieldP $ fieldT "Type")) (Just $ Name "grpType") :
+                           Tuple (Func $ Tuple (MiscF GROUPING) (singleton $ FieldP $ fieldT "BillingCountry")) (Just $ Name "grpCty") :
+                           Tuple (Func $ Tuple (AggrF COUNT) (singleton $ FieldP $ fieldT "id")) (Just $ Name "accts") :
+                           mempty)
+                from_   = singleton $ Tuple (fieldT "Account") Nothing 
+                groupBy_ = Just $ Cube $ fieldListT "Type, BillingCountry"
+                orderBy_ = Just (OrderByExpr 
+                                    (Tuple (FuncO $ Tuple (MiscF GROUPING) (singleton $ FieldP $ fieldT "Type")) Nothing : 
+                                     Tuple (FuncO $ Tuple (MiscF GROUPING) (singleton $ FieldP $ fieldT "BillingCountry")) Nothing :   
+                                     mempty) 
+                                    Nothing 
+                                    Nothing)
+                expected = Right $ defaultQuery {select = select_, from = from_, groupBy = groupBy_, orderBy = orderBy_}
+            parse x queryCompilation `shouldEqual` expected
+
+
 fieldT :: String -> Field
 fieldT = map Name <<< fromFoldable <<< split (Pattern ".") <<< trim
 
@@ -199,6 +240,7 @@ defaultQuery =
     , with: Nothing
     , using: Nothing 
     , orderBy: Nothing 
+    , groupBy: Nothing
     , limit: Nothing 
     , offset: Nothing
     , update: Nothing

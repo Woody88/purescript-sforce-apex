@@ -38,9 +38,11 @@ data SimpleExpr = CondExpr ConditionExpr | FldExpr FieldExpr | SExpr SetExpr
 
 data UsingExpr = Delegated | Everything | Mine | MineAndMyGroups | MyTerritory | MyTeamTerritory | Team
 
-data OrderByExpr = OrderByExpr FieldOrderByList OrderByProps OrderByNull
+data OrderByExpr = OrderByExpr FieldOrderByList (Maybe OrderByProps) (Maybe OrderByNull)
 
-type FieldOrderByList = List (Tuple Field (Maybe Alias)) 
+data OrderByClause = FieldO Field | FuncO FunctionExpr 
+
+type FieldOrderByList = List (Tuple OrderByClause (Maybe Alias))
 
 -- Specifies whether the results are ordered in ascending (ASC) or descending (DESC) order. Default order is ascending.
 data OrderByProps = Asc | Desc 
@@ -70,6 +72,8 @@ type WhenThenClause = Tuple Name (List Field)
 
 type ElseClause = List Field 
 
+data GroupByExpr = FieldG (List Field) | Rollup (List Field) | Cube (List Field)
+
 type Query 
     = { select  :: SelectExpr 
       , from    :: ObjectTypeExpr
@@ -77,6 +81,7 @@ type Query
       , with    :: Maybe WithExpr
       , using   :: Maybe UsingExpr 
       , orderBy :: Maybe OrderByExpr
+      , groupBy :: Maybe GroupByExpr
       , limit   :: Maybe LimitExpr
       , offset  :: Maybe OffsetExpr
       , for     :: Maybe (List ForExpr)
@@ -90,6 +95,7 @@ derive instance genericConditionExpr :: Generic ConditionExpr _
 derive instance genericSimpleExpr :: Generic SimpleExpr _ 
 derive instance genericUsingExpr :: Generic UsingExpr _ 
 derive instance genericOrderByExpr :: Generic OrderByExpr _ 
+derive instance genericOrderByClause :: Generic OrderByClause _ 
 derive instance genericOrderByProps :: Generic OrderByProps _ 
 derive instance genericOrderByNull :: Generic OrderByNull _ 
 derive instance genericUpdateExpr :: Generic UpdateExpr _ 
@@ -101,6 +107,7 @@ derive instance genericFunctionName :: Generic FunctionName _
 derive instance genericFunctionParameter :: Generic FunctionParameter _ 
 derive instance genericSelectClause :: Generic SelectClause _ 
 derive instance genericTypeofExpr :: Generic TypeofExpr _ 
+derive instance genericGroupByExpr :: Generic GroupByExpr _ 
 
 derive instance eqFieldExpr :: Eq FieldExpr 
 derive instance eqSetExpr :: Eq SetExpr 
@@ -109,6 +116,7 @@ derive instance eqConditionExpr :: Eq ConditionExpr
 derive instance eqSimpleExpr :: Eq SimpleExpr 
 derive instance eqUsingExpr :: Eq UsingExpr 
 derive instance eqOrderByExpr :: Eq OrderByExpr 
+derive instance eqOrderByClause :: Eq OrderByClause 
 derive instance eqOrderByProps :: Eq OrderByProps 
 derive instance eqOrderByNull :: Eq OrderByNull 
 derive instance eqUpdateExpr :: Eq UpdateExpr 
@@ -120,6 +128,7 @@ derive instance eqFunctionName :: Eq FunctionName
 derive instance eqFunctionParameter :: Eq FunctionParameter 
 derive instance eqSelectClause :: Eq SelectClause 
 derive instance eqTypeofExpr :: Eq TypeofExpr 
+derive instance eqGroupByExpr :: Eq GroupByExpr 
 
 instance showFieldExpr :: Show FieldExpr where 
     show = genericShow 
@@ -174,4 +183,10 @@ instance showSelectClause :: Show SelectClause where
     show x = genericShow x
     
 instance showTypeofExpr :: Show TypeofExpr where 
+    show x = genericShow x
+
+instance showOrderByClause :: Show OrderByClause where 
+    show x = genericShow x
+
+instance showGroupByExpr :: Show GroupByExpr where 
     show x = genericShow x

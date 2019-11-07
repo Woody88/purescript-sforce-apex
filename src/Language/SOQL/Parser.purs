@@ -31,12 +31,13 @@ queryCompilation = do
     using   <- optMaybe usingExpr
     where_  <- optMaybe whereExpr
     with    <- optMaybe withExpr
+    groupBy <- optMaybe groupByExpr
     orderBy <- optMaybe orderByExpr
     limit   <- optMaybe limitExpr 
     offset  <- optMaybe offsetExpr 
     update  <- optMaybe updateExpr
     for     <- optMaybe forExpr 
-    pure $ {select, from, "where": where_, with, using, orderBy, limit, offset, update, for}
+    pure $ {select, from, "where": where_, with, using, orderBy, groupBy, limit, offset, update, for}
 
 selectExpr :: P SelectExpr
 selectExpr = do  
@@ -73,10 +74,25 @@ usingExpr = do
 orderByExpr :: P OrderByExpr
 orderByExpr = do 
     tok KW_OrderBy 
-    fldOrderList  <- fieldList
-    orderByProps <- try (tok KW_Asc *> pure Asc) <|> (tok KW_Desc *> pure Desc)
-    orderByNulls <- try (tok KW_NullFirst *> pure First) <|> (tok KW_NullLast *> pure Last)
+    let orderByParam = Tuple <$> orderByClause <*> optMaybe name 
+    fldOrderList  <- seplist1 orderByParam comma
+    orderByProps <- try (optMaybe ((tok KW_Asc *> pure Asc) <|> (tok KW_Desc *> pure Desc)))
+    orderByNulls <- try (optMaybe ((tok KW_NullFirst *> pure First) <|> (tok KW_NullLast *> pure Last)))
     pure $ OrderByExpr fldOrderList orderByProps orderByNulls
+
+orderByClause :: P OrderByClause
+orderByClause = do 
+    try simplField <|> funcField
+    where 
+        simplField = FieldO <$> field 
+        funcField = FuncO <$> functionExpr
+
+groupByExpr :: P GroupByExpr 
+groupByExpr = try simplField <|> try rollup <|> cube
+    where 
+        simplField = tok KW_GroupBy *> (FieldG <$> (seplist1 field comma)) 
+        rollup = tok KW_GroupByRollup *> (Rollup <$> (parens $ seplist1 field comma))
+        cube = tok KW_GroupByCube *> (Cube <$> (parens $ seplist1 field comma)) 
 
 limitExpr :: P LimitExpr
 limitExpr = do 
