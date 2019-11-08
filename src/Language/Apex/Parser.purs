@@ -10,15 +10,15 @@ import Control.Lazy (fix)
 import Control.Monad.State (gets, modify_)
 import Data.Either (Either)
 import Data.Foldable (foldl)
-import Data.List (List, (:))
-import Data.List as List
+import Data.List.Lazy (List, (:))
+import Data.List.Lazy as List
 import Data.Maybe (Maybe(..), isJust, fromMaybe, maybe)
 import Data.Newtype as Newtype
 import Data.Tuple (Tuple(..))
 import Language.Apex.Lexer (lexApex)
 import Language.Types (Token(..))
 import Language.Types (L(..))
-import Language.Internal (langToken, optMaybe, empty, bopt, lopt, tok, seplist, seplist1, list, list1)
+import Language.Internal (langToken, tok', optMaybe, empty, bopt, lopt, tok, seplist, seplist1, list, list1)
 import Language.Apex.Syntax.Types (DML(..), ClassType(..), Ident(..), Literal(..), Name(..), PrimType(..), RefType(..), Type(..), TypeArgument(..), TypeParam(..))
 import Text.Parsing.Parser (ParseState(..), Parser, ParseError, runParser, fail)
 import Text.Parsing.Parser.Combinators ((<?>))
@@ -890,7 +890,7 @@ primType =
     tok KW_Boolean  *> pure BooleanT  <|>
     tok KW_Object   *> pure ObjectT   <|>
     tok KW_Decimal  *> pure DecimalT  <|>
-    tok KW_ID       *> pure IdT       <|>
+    tok' "id"       *> pure IdT       <|>
     tok KW_String   *> pure StringT       <|>
     tok KW_Integer  *> pure IntegerT  <|>
     tok KW_Long     *> pure LongT     <|>

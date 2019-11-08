@@ -2,12 +2,11 @@ module Language.SOQL.Parser.Internal where
 
 import Prelude (($), (<$>), pure, bind)
 import Control.Alt ((<|>))
-import Data.List (List)
+import Data.List.Lazy (List)
 import Data.Maybe (Maybe(..))
 import Data.String.Common (toLower)
-import Language.SOQL.Lexer.Types (Token(..))
 import Language.Internal (langToken)
-import Language.Types (L)
+import Language.Types (L, Token(..))
 import Language.SOQL.Syntax.Types 
 import Text.Parsing.Parser (Parser, fail)
 
@@ -37,7 +36,7 @@ loperator = langToken $ \t -> case t of
 
 coperator :: P CompirasonOperator
 coperator = langToken $ \t -> case t of
-    Op_Eq       -> Just $ EQ
+    Op_Equal       -> Just $ EQ
     Op_NotEq    -> Just $ NEQ 
     Op_GThan    -> Just $ GT 
     Op_LThan    -> Just $ LT 
@@ -93,7 +92,7 @@ fnMisc = langToken $ \t -> case t of
     _                    -> Nothing
 
 getIdent = langToken $ \t -> case t of 
-    Ident x -> Just x
+    IdentTok x -> Just x
     _       -> Nothing
 
 dateformula :: P DateFormula 

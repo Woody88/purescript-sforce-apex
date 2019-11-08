@@ -2,7 +2,7 @@ module Language.Apex.Syntax where
 
 import Prelude 
 import Data.Tuple (Tuple(..))
-import Data.List.Types 
+import Data.List.Lazy (List) 
 import Data.Maybe (Maybe)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
@@ -26,6 +26,7 @@ data AssignOp = EqualA  | MultA   | DivA     | RemA | AddA | SubA
 
 data Exp 
     = Lit Literal
+
     | DML DML Exp
     -- | A class literal, which is an expression consisting of the name of a class, interface, array,
     --   or primitive type, or the pseudo-type void (modelled by 'Nothing'), followed by a `.' and the token class.

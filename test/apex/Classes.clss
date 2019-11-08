@@ -61,4 +61,3 @@ public class RedMarker extends Marker {
         return 1.5;
     }
 }    
-

@@ -6,14 +6,13 @@ import Control.Alt ((<|>))
 import Control.Lazy (fix)
 import Data.Foldable (for_)
 import Data.Either (Either)
-import Data.List (List, singleton)
+import Data.List.Lazy (List, singleton)
 import Data.Maybe (Maybe(..))
 import Data.String.Common (toLower)
 import Data.Tuple (Tuple(..))
 import Language.Internal (langToken, tok, seplist, seplist1, lopt, list, list1, optMaybe)
-import Language.Types (L)
-import Language.SOQL.Lexer (lexSOQL)
-import Language.SOQL.Lexer.Types (Token(..))
+import Language.Types (L, Token(..))
+import Language.Lexer (lexer)
 import Language.SOQL.Syntax 
 import Language.SOQL.Syntax.Types
 import Language.SOQL.Parser.Internal 
@@ -22,7 +21,7 @@ import Text.Parsing.Parser.String (eof)
 import Text.Parsing.Parser.Combinators ((<?>), optional, try, notFollowedBy, between)
 
 parse :: forall a. String -> P a ->  Either ParseError a 
-parse s p = runParser (lexSOQL s) p
+parse s p = runParser (lexer s) p
 
 queryCompilation :: P Query 
 queryCompilation = do 
@@ -249,7 +248,7 @@ refName = seplist1 ident period
 
 ident :: P Name 
 ident = langToken $ \t -> case t of
-    Ident s -> Just $ Name s
+    IdentTok s -> Just $ Name s
     _ -> Nothing
 
 tok' :: String -> P Unit

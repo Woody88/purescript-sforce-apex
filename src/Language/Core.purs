@@ -1,22 +1,24 @@
 module Language.Core where 
 
-import Prelude
+import Prelude hiding (between)
 import Control.Alt ((<|>))
 import Control.Apply ((*>), (<*))
+import Control.Lazy (fix)
 import Data.HashSet as HS
 import Data.Int as Int
+import Data.Either (Either(..))
 import Data.BigInt as BigInt
 import Data.Tuple (Tuple(..))
 import Data.Traversable (traverse, sequence)
 import Data.Array as Array
 import Data.Char.Unicode (isAlpha, toLower, toUpper)
 import Data.String.CodeUnits (toCharArray)
-import Data.List (List, toUnfoldable, fromFoldable)
+import Data.List.Lazy (List, toUnfoldable, fromFoldable, many)
 import Data.Maybe (Maybe, maybe)
 import Data.String.CodeUnits (fromCharArray, singleton)
 import Language.Types 
 import Language.Internal
-import Text.Parsing.Parser (runParser, position, fail)
+import Text.Parsing.Parser (ParseError, runParser, position, fail, parseErrorMessage)
 import Text.Parsing.Parser.Combinators 
 import Text.Parsing.Parser.Language 
 import Text.Parsing.Parser.String 
@@ -25,6 +27,7 @@ import Text.Parsing.Parser.Token
 
 readToken :: P (L Token)
 readToken = 
+    try (KW_SOQL                <<=: testSOQL)                <|>
     try (DatetimeTok            <<=: datetimeLiteral)         <|>
     try (DateTok                <<=: dateLiteral)             <|>
     try (LongTok                <<=: longLiteral)              <|>
@@ -32,88 +35,82 @@ readToken =
     try (IntegerTok             <<=: integerLiteral)           <|>
     try (StringTok              <<=: stringLiteral)            <|>
     try (BoolTok                <<=: boolLiteral)              <|>
-    try (NullTok                <=: nullLiteral)               <|>  
     try (Period                 <=:  period     )              <|>
-    try (KW_Override            <=: istring_ "override" )       <|>
-    try (KW_With_Share          <=: istring_ "with sharing" )   <|>
-    try (KW_Without_Share       <=: istring_ "without sharing") <|> 
-    try (KW_Inherit_Share       <=: istring_ "inherit sharing") <|>
-    try (KW_Object              <=: istring_ "object" )         <|>
-    try (KW_Time                <=: istring_ "time")            <|> 
-    try (KW_ID                  <=: istring_ "id")              <|>
-    try (KW_Date                <=: istring_ "date")            <|> 
-    try (KW_Datetime            <=: istring_ "datetime")        <|>
-    try (KW_When                <=: istring_ "when")            <|> 
-    try (KW_Abstract            <=: istring_ "abstract")        <|> 
-    try (KW_Integer             <=: istring_ "integer")         <|> 
-    try (KW_String              <=: istring_ "string")          <|>
-    try (KW_Assert              <=: istring_ "assert")          <|> 
-    try (KW_Boolean             <=: istring_ "boolean")         <|> 
-    try (KW_Break               <=: istring_ "break")           <|> 
-    try (KW_Blob                <=: istring_ "blob")            <|> 
-    try (KW_Case                <=: istring_ "case")            <|> 
-    try (KW_Catch               <=: istring_ "catch")           <|> 
-    try (KW_Class               <=: istring_ "class")           <|> 
-    try (KW_Const               <=: istring_ "const")           <|> 
-    try (KW_Continue            <=: istring_ "continue")        <|> 
-    try (KW_WhenElse            <=: istring_ "when else")       <|> 
-    try (KW_Double              <=: istring_ "double")          <|> 
-    try (KW_Do                  <=: istring_ "do")              <|> 
-    try (KW_Else                <=: istring_ "else")            <|> 
-    try (KW_Enum                <=: istring_ "enum")            <|> 
-    try (KW_Extends             <=: istring_ "extends")         <|> 
-    try (KW_Final               <=: istring_ "final")           <|> 
-    try (KW_Finally             <=: istring_ "finally")         <|> 
-    try (KW_Decimal             <=: istring_ "decimal")         <|> 
-    try (KW_For                 <=: istring_ "for")             <|> 
-    try (KW_If                  <=: istring_ "if")              <|> 
-    try (KW_Implements          <=: istring_ "implements")      <|> 
-    try (KW_Import              <=: istring_ "import")          <|> 
-    try (KW_Instanceof          <=: istring_ "instanceof")      <|> 
-    try (KW_Interface           <=: istring_ "interface")       <|> 
-    try (KW_Long                <=: istring_ "long")            <|> 
-    try (KW_New                 <=: istring_ "new")             <|> 
-    try (KW_Private             <=: istring_ "private")         <|> 
-    try (KW_Virtual             <=: istring_ "virtual")         <|> 
-    try (KW_Global              <=: istring_ "global")          <|> 
-    try (KW_Protected           <=: istring_ "protected")       <|> 
-    try (KW_Public              <=: istring_ "public")          <|> 
-    try (KW_Return              <=: istring_ "return")          <|> 
-    try (KW_Static              <=: istring_ "static")          <|> 
-    try (KW_Super               <=: istring_ "super")           <|> 
-    try (KW_Switch              <=: istring_ "switch on")       <|> 
-    try (KW_This                <=: istring_ "this")            <|> 
-    try (KW_Transient           <=: istring_ "transient")       <|> 
-    try (KW_Try                 <=: istring_ "try")             <|> 
-    try (KW_Void                <=: istring_ "void")            <|> 
-    try (KW_While               <=: istring_ "while")           <|> 
+    try (KW_Override            <=: istring "override" )       <|>
+    try (KW_With_Share          <=: istring "with sharing" )   <|>
+    try (KW_Without_Share       <=: istring "without sharing") <|> 
+    try (KW_Inherit_Share       <=: istring "inherit sharing") <|>
+    try (KW_Object              <=: istring "object" )         <|>
+    try (KW_Time                <=: istring "time")            <|> 
+    try (KW_Date                <=: istring "date")            <|> 
+    try (KW_Datetime            <=: istring "datetime")        <|>
+    try (KW_When                <=: istring "when")            <|> 
+    try (KW_Abstract            <=: istring "abstract")        <|> 
+    try (KW_Integer             <=: istring "integer")         <|> 
+    try (KW_String              <=: istring "string")          <|>
+    try (KW_Assert              <=: istring "assert")          <|> 
+    try (KW_Boolean             <=: istring "boolean")         <|> 
+    try (KW_Break               <=: istring "break")           <|> 
+    try (KW_Blob                <=: istring "blob")            <|> 
+    try (KW_Case                <=: istring "case")            <|> 
+    try (KW_Catch               <=: istring "catch")           <|> 
+    try (KW_Class               <=: istring "class")           <|> 
+    try (KW_Const               <=: istring "const")           <|> 
+    try (KW_Continue            <=: istring "continue")        <|> 
+    try (KW_WhenElse            <=: istring "when else")       <|> 
+    try (KW_Double              <=: istring "double")          <|> 
 
-    try (KW_Asc       <=: istring_ "asc"     )    <|>  
-    try (KW_As        <=: istring_ "as"      )    <|>    
-    try (KW_OrderBy   <=: istring_ "order by")    <|>    
-    try (KW_Desc      <=: istring_ "desc"    )    <|>  
-    try (KW_Then      <=: istring_ "then"    )    <|>  
-    try (KW_End       <=: istring_ "end"    )     <|>  
-  
-    try (KW_NullFirst <=: istring_ "nulls first")  <|>   
-    try (KW_From      <=: istring_ "from"    )    <|>
-    try (KW_GroupByCube   <=: istring_ "group by cube"  )  <|>     
-    try (KW_GroupByRollup <=: istring_ "group by rollup")  <|>  
-    try (KW_GroupBy   <=: istring_ "group by")    <|>   
-    try (KW_Having    <=: istring_ "having"  )    <|>   
-    try (KW_NullLast  <=: istring_ "nulls last")  <|>    
-    try (KW_Limit     <=: istring_ "limit"   )    <|>    
-    try (KW_Select    <=: istring_ "select"  )    <|>   
-    try (KW_Using     <=: istring_ "using"   )    <|>   
-    try (KW_Where     <=: istring_ "where"   )    <|>    
+    try (KW_Else                <=: istring "else")            <|> 
+    try (KW_Enum                <=: istring "enum")            <|> 
+    try (KW_Extends             <=: istring "extends")         <|> 
+    try (KW_Final               <=: istring "final")           <|> 
+    try (KW_Finally             <=: istring "finally")         <|> 
+    try (KW_Decimal             <=: istring "decimal")         <|> 
+    try (KW_Implements          <=: istring "implements")      <|> 
+    try (KW_Import              <=: istring "import")          <|> 
+    try (KW_Instanceof          <=: istring "instanceof")      <|> 
+    try (KW_Interface           <=: istring "interface")       <|> 
+    try (KW_Long                <=: istring "long")            <|> 
+    try (KW_New                 <=: istring "new")             <|> 
+    try (KW_Private             <=: istring "private")         <|> 
+    try (KW_Virtual             <=: istring "virtual")         <|> 
+    try (KW_Global              <=: istring "global")          <|> 
+    try (KW_Protected           <=: istring "protected")       <|> 
+    try (KW_Public              <=: istring "public")          <|> 
+    try (KW_Return              <=: istring "return")          <|> 
+    try (KW_Static              <=: istring "static")          <|> 
+    try (KW_Super               <=: istring "super")           <|> 
+    try (KW_Switch              <=: istring "switch on")       <|> 
+    try (KW_This                <=: istring "this")            <|> 
+    try (KW_Transient           <=: istring "transient")       <|> 
+    try (KW_Try                 <=: istring "try")             <|> 
+    try (KW_Void                <=: istring "void")            <|> 
+    try (KW_While               <=: istring "while")           <|> 
+    try (KW_OrderBy   <=: istring "order by")    <|>    
+    try (KW_Desc      <=: istring "desc"    )    <|>  
+    try (KW_Then      <=: istring "then"    )    <|>  
+    try (KW_End       <=: istring "end"    )     <|>  
+    try (KW_Asc       <=: istring "asc"     )    <|>  
+
+    try (KW_NullFirst <=: istring "nulls first")  <|>   
+    try (KW_From      <=: istring "from"    )    <|>
+    try (KW_GroupByCube   <=: istring "group by cube"  )  <|>     
+    try (KW_GroupByRollup <=: istring "group by rollup")  <|>  
+    try (KW_GroupBy   <=: istring "group by")    <|>   
+    try (KW_Having    <=: istring "having"  )    <|>   
+    try (KW_NullLast  <=: istring "nulls last")  <|>    
+    try (KW_Limit     <=: istring "limit"   )    <|>    
+    try (KW_Select    <=: istring "select"  )    <|>   
+    try (KW_Using     <=: istring "using"   )    <|>   
+    try (KW_Where     <=: istring "where"   )    <|>    
 
     -- DML Keywords
-    try (KW_Update    <=: istring_ "update"  )    <|> 
-    try (KW_Insert    <=: istring_ "insert"  )    <|> 
-    try (KW_Upsert    <=: istring_ "upsert"  )    <|> 
-    try (KW_Delete    <=: istring_ "delete"  )    <|> 
-    try (KW_Undelete  <=: istring_ "undelete")    <|> 
-    try (KW_Merge     <=: istring_ "merge"   )    <|> 
+    try (KW_Update    <=: istring "update"  )    <|> 
+    try (KW_Insert    <=: istring "insert"  )    <|> 
+    try (KW_Upsert    <=: istring "upsert"  )    <|> 
+    try (KW_Delete    <=: istring "delete"  )    <|> 
+    try (KW_Undelete  <=: istring "undelete")    <|> 
+    try (KW_Merge     <=: istring "merge"   )    <|> 
 
     -- SOQL Date Related Token 
     try (Next_n_days             <<=: strNDate "next_n_days" ) <|> 
@@ -137,29 +134,29 @@ readToken =
     try (Next_n_fiscal_years     <<=: strNDate "next_n_fiscal_years" ) <|> 
     try (Last_n_fiscal_years     <<=: strNDate "last_n_fiscal_years" ) <|> 
     try (N_fiscal_years_ago      <<=: strNDate "n_fiscal_years_ago" ) <|>
-    try (Yesterday            <=: istring_ "yesterday" ) <|> 
-    try (Today                <=: istring_ "today" ) <|> 
-    try (Tomorrow             <=: istring_ "tomorrow" ) <|> 
-    try (Last_week            <=: istring_ "last_week" ) <|> 
-    try (This_week            <=: istring_ "this_week" ) <|> 
-    try (Next_week            <=: istring_ "next_week" ) <|> 
-    try (Last_month           <=: istring_ "last_month" ) <|> 
-    try (This_month           <=: istring_ "this_month" ) <|> 
-    try (Next_month           <=: istring_ "next_month" ) <|> 
-    try (Last_90_days         <=: istring_ "last_90_days" ) <|> 
-    try (Next_90_days         <=: istring_ "next_90_days" ) <|> 
-    try (This_quarter         <=: istring_ "this_quarter" ) <|> 
-    try (Last_quarter         <=: istring_ "last_quarter" ) <|> 
-    try (Next_quarter         <=: istring_ "next_quarter" ) <|> 
-    try (This_year            <=: istring_ "this_year" ) <|> 
-    try (Last_year            <=: istring_ "last_year" ) <|> 
-    try (Next_year            <=: istring_ "next_year" ) <|> 
-    try (This_fiscal_quarter  <=: istring_ "this_fiscal_quarter" ) <|> 
-    try (Last_fiscal_quarter  <=: istring_ "last_fiscal_quarter" ) <|> 
-    try (Next_fiscal_quarter  <=: istring_ "next_fiscal_quarter" ) <|> 
-    try (This_fiscal_year     <=: istring_ "this_fiscal_year" ) <|> 
-    try (Last_fiscal_year     <=: istring_ "last_fiscal_year" ) <|> 
-    try (Next_fiscal_year     <=: istring_ "next_fiscal_year" ) <|>
+    try (Yesterday            <=: istring "yesterday" ) <|> 
+    try (Today                <=: istring "today" ) <|> 
+    try (Tomorrow             <=: istring "tomorrow" ) <|> 
+    try (Last_week            <=: istring "last_week" ) <|> 
+    try (This_week            <=: istring "this_week" ) <|> 
+    try (Next_week            <=: istring "next_week" ) <|> 
+    try (Last_month           <=: istring "last_month" ) <|> 
+    try (This_month           <=: istring "this_month" ) <|> 
+    try (Next_month           <=: istring "next_month" ) <|> 
+    try (Last_90_days         <=: istring "last_90_days" ) <|> 
+    try (Next_90_days         <=: istring "next_90_days" ) <|> 
+    try (This_quarter         <=: istring "this_quarter" ) <|> 
+    try (Last_quarter         <=: istring "last_quarter" ) <|> 
+    try (Next_quarter         <=: istring "next_quarter" ) <|> 
+    try (This_year            <=: istring "this_year" ) <|> 
+    try (Last_year            <=: istring "last_year" ) <|> 
+    try (Next_year            <=: istring "next_year" ) <|> 
+    try (This_fiscal_quarter  <=: istring "this_fiscal_quarter" ) <|> 
+    try (Last_fiscal_quarter  <=: istring "last_fiscal_quarter" ) <|> 
+    try (Next_fiscal_quarter  <=: istring "next_fiscal_quarter" ) <|> 
+    try (This_fiscal_year     <=: istring "this_fiscal_year" ) <|> 
+    try (Last_fiscal_year     <=: istring "last_fiscal_year" ) <|> 
+    try (Next_fiscal_year     <=: istring "next_fiscal_year" ) <|>
     try (KW_Format               <=: funcLiteral "format" ) <|> 
     try (KW_Tolabel              <=: funcLiteral "tolabel" ) <|> 
     try (KW_Convert_time_zone    <=: funcLiteral "converttimezone" ) <|> 
@@ -187,12 +184,23 @@ readToken =
     try (KW_Week_in_month        <=: funcLiteral "week_in_month" ) <|> 
     try (KW_Week_in_year         <=: funcLiteral "week_in_year" )  <|>
     
+    try (KW_As                  <=: istring "as")              <|>    
+    try (KW_For                 <=: istring "for")             <|> 
+    try (KW_Do                  <=: istring "do")              <|> 
+    try (KW_If                  <=: istring "if")              <|> 
+    try (NullTok                <=: nullLiteral)               <|> 
+
+
     -- SOQL extra operator 
-    try (Op_Like      <=: istring_ "like"    )    <|>       
-    try (Op_Excludes  <=: istring_ "excludes")    <|>   
-    try (Op_Includes  <=: istring_ "includes")    <|>  
-    try (Op_NotIn     <=: istring_ "not in"  )    <|>
-    try (Op_In        <=: istring_ "in"      )     <|>
+    try (Op_Like      <=: istring "like"    )    <|>       
+    try (Op_Excludes  <=: istring "excludes")    <|>   
+    try (Op_Includes  <=: istring "includes")    <|>  
+    try (Op_NotIn     <=: istring "not in"  )    <|>
+
+    identTok                                     <|>
+
+    try (Op_In        <=: istring "in"      )    <|>
+    try (Op_Not       <=: istring "not"     )    <|>
 
     -- Operations & Symbols
     try (Op_Equals              <=: string "==")            <|>
@@ -239,19 +247,16 @@ readToken =
     try (Op_Bang                <=: char '!')               <|>
     try (Op_Tilde               <=: char '~')               <|>
     try (Op_Query               <=: char '?')               <|>
-    try (Op_Colon               <=: char ':')               <|>
-    identTok                                                
+    try (Op_Colon               <=: char ':')                                                      
     where 
-        orOperator = (singleton <$> char '|') <|> istring_ "or" 
-        andOperator = (singleton <$> char '&') <|> istring_ "and" 
+        orOperator = (singleton <$> char '|') <|> istring "or" 
+        andOperator = (singleton <$> char '&') <|> istring "and" 
         notEqual = (string "<>" <|> string "!=")
         period   = (char '.' <* notFollowedBy digit)
-        strNDate fnName = istring_ fnName *> colon *> digits
+        strNDate fnName = istring fnName *> colon *> digits
         nullLiteral = (istring "nulls" <|> istring "null")
         colon = javaLexer.colon
         identTok = IdentTok <<=: identifier
-        istring_ s = istring s <* notFollowedBy javaLetter
-
 
 javaLexer :: TokenParser
 javaLexer = makeTokenParser javaLanguage
@@ -265,13 +270,13 @@ javaLanguage = do
                         , reservedOpNames = javaReservedOpNames
                         } 
     javaStyleDef
-    
+
 javaReservedNames = 
-    [ "override" ,"with" ,"without" ,"inherit" ,"object" ,"time" ,"id" ,"date" ,"datetime" ,"when" ,"abstract" ,"integer" 
+    [ "override","object", "time" ,"date" ,"datetime" ,"when" ,"abstract" ,"integer" 
     , "assert" ,"boolean" ,"break" ,"blob" ,"case" ,"catch" ,"class" ,"const" ,"continue" ,"when" ,"double" ,"do" ,"else" 
     , "enum" ,"extends" ,"final" ,"finally" ,"decimal" ,"for" ,"if" ,"implements" ,"import" ,"instanceof" ,"interface" ,"long" 
     , "new" ,"private" ,"protected" ,"public" ,"return" ,"static" ,"super" ,"switch" ,"this" ,"transient" ,"try" ,"void" ,"while" 
-    , "virtual", "global", "string"
+    , "virtual", "global", "string", "in", "not"
     ]
 
     
@@ -305,6 +310,12 @@ operatorTable = HS.fromArray javaReservedOpNames
 isKeyword = flip HS.member keywordTable
 isOperator = flip HS.member operatorTable
 
+testSOQL = do
+    _ <- string "["
+    select <- istring "select"
+    rest <- fromCharArray <$> (Array.many $ satisfy \c -> c /= ']')
+    pure $ select <> rest
+
 dot :: P String 
 dot = javaLexer.dot 
 
@@ -327,6 +338,9 @@ parens = javaLexer.parens
 
 brackets :: forall t. P t -> P t
 brackets = javaLexer.brackets      
+
+braces :: forall t. P t -> P t
+braces = javaLexer.braces   
 
 -- parses a semicolon
 semi :: P String

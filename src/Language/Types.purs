@@ -1,6 +1,8 @@
 module Language.Types where 
 
 import Prelude
+import Control.Lazy (fix)
+import Data.List.Lazy (List)
 import Data.BigInt (BigInt)
 import Data.Newtype (class Newtype)
 import Data.Generic.Rep (class Generic)
@@ -22,7 +24,7 @@ data Token  =
     | KW_For | KW_If | KW_Implements | KW_Import | KW_Instanceof | KW_Integer | KW_Interface | KW_Long 
     | KW_New | KW_Private | KW_Protected | KW_Public | KW_Return | KW_Short | KW_Static | KW_Super 
     | KW_Switch | KW_This | KW_Throw | KW_Throws | KW_Transient | KW_Try | KW_Void | KW_While 
-    | KW_Object | KW_Time | KW_ID | KW_Date | KW_Datetime | KW_Override | KW_Virtual | KW_Global | KW_String
+    | KW_Object | KW_Time | KW_Date | KW_Datetime | KW_Override | KW_Virtual | KW_Global | KW_String
     | KW_As | KW_Asc | KW_OrderBy | KW_GroupByCube | KW_Desc | KW_Else | KW_NullFirst | KW_From | KW_GroupBy 
     | KW_Having | KW_NullLast | KW_Limit | KW_GroupByRollup | KW_Select | KW_Using | KW_When | KW_End
     | KW_Where | KW_Then 
@@ -38,7 +40,7 @@ data Token  =
     | Colon 
 
     -- Literals 
-    | IntegerTok Int | LongTok BigInt | DoubleTok Number | CharTok Char | StringTok String | BoolTok Boolean | KW_SOQL String     
+    | IntegerTok Int | LongTok BigInt | DoubleTok Number | CharTok Char | StringTok String | BoolTok Boolean | KW_SOQL String      
     | DateTok String | DatetimeTok String | NullTok
 
     -- Identifiers
@@ -81,10 +83,12 @@ data Token  =
     | Next_n_fiscal_years Int | Last_n_fiscal_years Int | N_fiscal_years_ago Int
 
 derive instance genericToken :: Generic Token _
+
 derive instance eqToken :: Eq Token 
 
+
 instance showToken :: Show Token where 
-    show = genericShow
+    show = genericShow 
 
 derive instance newtypePos :: Newtype Pos _
 derive instance genericL :: Generic (L a) _

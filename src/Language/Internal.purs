@@ -4,16 +4,15 @@ import Prelude
 import Control.Alt ((<|>))
 import Control.Monad.State (gets, modify_)
 import Control.Monad.Rec.Class (class MonadRec)
-import Data.List (List, (:), uncons, singleton, someRec)
+import Data.List.Lazy (List, (:), uncons, singleton, some)
 import Data.Newtype (unwrap, wrap)
 import Data.Maybe (Maybe(..), isJust)
 import Data.String (drop, length, toLower)
-import Language.Types (L(..), Token, P, Pos(..))
+import Language.Types (L(..), Token(..), P, Pos(..))
 import Text.Parsing.Parser.Combinators (optionMaybe, try, option)
 import Text.Parsing.Parser (ParseState(..), ParserT, fail, position)
 import Text.Parsing.Parser.Pos (updatePosString)
 import Text.Parsing.Parser.String (indexOf)
-
 
 langToken :: forall m s a t. Monad m => Show t => (t -> Maybe a) -> ParserT (List (L t)) m a
 langToken test =  token posT showT testT
@@ -24,6 +23,17 @@ langToken test =  token posT showT testT
 
 tok :: forall m s a t. Monad m => Show t => Eq t => t -> ParserT (List (L t)) m Unit 
 tok t = langToken (\r -> if r == t then Just unit else Nothing)
+
+tok' :: forall m. Monad m => String -> ParserT (List (L Token)) m Unit
+tok' t = token
+    where 
+        token = getIdent >>= tokenName
+        tokenName s = if toLower s == t then pure unit else fail ("unexpected " <> t <> " token")
+
+getIdent :: forall m. Monad m => ParserT (List (L Token)) m String
+getIdent = langToken $ \t -> case t of 
+    IdentTok x -> Just x
+    _       -> Nothing
 
 token nextpos showt test = do
     input <- gets \(ParseState input _ _) -> input
@@ -69,7 +79,7 @@ list :: forall m s a. Monad m => MonadRec m => ParserT s m a -> ParserT s m (Lis
 list = option mempty <<< list1
 
 list1 :: forall m s a. Monad m => MonadRec m => ParserT s m a -> ParserT s m (List a)
-list1 = someRec
+list1 = some
 
 -- | Match the specified string - case insensitive .
 istring :: String -> P String
@@ -86,7 +96,7 @@ istring str = do
 
 -- | Match one or more times.
 many1 :: forall a. P a -> P (List a)
-many1 = someRec
+many1 = some
 
 infixr 6 mkToken as <=:
 

@@ -3,7 +3,7 @@ module Language.Apex.Syntax.Types where
 import Prelude
 import Data.Maybe (Maybe)
 import Data.Tuple (Tuple)
-import Data.List (List)
+import Data.List.Lazy (List)
 import Data.BigInt (BigInt)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)

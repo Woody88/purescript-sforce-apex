@@ -3,7 +3,7 @@ module Language.SOQL.Syntax where
 import Prelude
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
-import Data.List (List)
+import Data.List.Lazy (List)
 import Data.Maybe (Maybe)
 import Data.Tuple (Tuple)
 import Language.SOQL.Syntax.Types 
