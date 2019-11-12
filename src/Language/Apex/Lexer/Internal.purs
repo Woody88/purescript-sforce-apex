@@ -35,115 +35,114 @@ import Unsafe.Coerce (unsafeCoerce)
 
 readToken :: P (L Token)
 readToken = 
-    PC.try (KW_SOQL                <<=: soqlLiteral)             -- <|>
-    -- PC.try identTok                                               <|>
-    -- PC.try (LongTok                <<=: longLiteral)              <|>
-    -- PC.try (DoubleTok              <<=: doubleLiteral)            <|>
-    -- PC.try (IntegerTok             <<=: integerLiteral)           <|>
-    -- PC.try (StringTok              <<=: stringLiteral)            <|>
-    -- PC.try (BoolTok                <<=: boolLiteral)              <|>
-    -- PC.try (Period                 <=:  period     )              <|>
-    -- PC.try (KW_Override            <=: istring "override" )       <|>
-    -- PC.try (KW_With_Share          <=: istring "with sharing" )   <|>
-    -- PC.try (KW_Without_Share       <=: istring "without sharing") <|> 
-    -- PC.try (KW_Inherit_Share       <=: istring "inherit sharing") <|>
-    -- PC.try (KW_Object              <=: istring "object" )         <|>
-    -- PC.try (KW_Time                <=: istring "time")            <|> 
-    -- PC.try (KW_ID                  <=: istring "id")              <|>
-    -- PC.try (KW_Date                <=: istring "date")            <|> 
-    -- PC.try (KW_Datetime            <=: istring "datetime")        <|>
-    -- PC.try (KW_When                <=: istring "when")            <|> 
-    -- PC.try (KW_Abstract            <=: istring "abstract")        <|> 
-    -- PC.try (KW_Integer             <=: istring "integer")         <|> 
-    -- PC.try (KW_String              <=: istring "string")          <|>
-    -- PC.try (KW_Assert              <=: istring "assert")          <|> 
-    -- PC.try (KW_Boolean             <=: istring "boolean")         <|> 
-    -- PC.try (KW_Break               <=: istring "break")           <|> 
-    -- PC.try (KW_Blob                <=: istring "blob")            <|> 
-    -- PC.try (KW_Case                <=: istring "case")            <|> 
-    -- PC.try (KW_Catch               <=: istring "catch")           <|> 
-    -- PC.try (KW_Class               <=: istring "class")           <|> 
-    -- PC.try (KW_Const               <=: istring "const")           <|> 
-    -- PC.try (KW_Continue            <=: istring "continue")        <|> 
-    -- PC.try (KW_WhenElse            <=: istring "when else")       <|> 
-    -- PC.try (KW_Double              <=: istring "double")          <|> 
-    -- PC.try (KW_Do                  <=: istring "do")              <|> 
-    -- PC.try (KW_Else                <=: istring "else")            <|> 
-    -- PC.try (KW_Enum                <=: istring "enum")            <|> 
-    -- PC.try (KW_Extends             <=: istring "extends")         <|> 
-    -- PC.try (KW_Final               <=: istring "final")           <|> 
-    -- PC.try (KW_Finally             <=: istring "finally")         <|> 
-    -- PC.try (KW_Decimal             <=: istring "decimal")         <|> 
-    -- PC.try (KW_For                 <=: istring "for")             <|> 
-    -- PC.try (KW_If                  <=: istring "if")              <|> 
-    -- PC.try (KW_Implements          <=: istring "implements")      <|> 
-    -- PC.try (KW_Import              <=: istring "import")          <|> 
-    -- PC.try (KW_Instanceof          <=: istring "instanceof")      <|> 
-    -- PC.try (KW_Interface           <=: istring "interface")       <|> 
-    -- PC.try (KW_Long                <=: istring "long")            <|> 
-    -- PC.try (KW_New                 <=: istring "new")             <|> 
-    -- PC.try (KW_Private             <=: istring "private")         <|> 
-    -- PC.try (KW_Virtual             <=: istring "virtual")         <|> 
-    -- PC.try (KW_Global              <=: istring "global")          <|> 
-    -- PC.try (KW_Protected           <=: istring "protected")       <|> 
-    -- PC.try (KW_Public              <=: istring "public")          <|> 
-    -- PC.try (KW_Return              <=: istring "return")          <|> 
-    -- PC.try (KW_Static              <=: istring "static")          <|> 
-    -- PC.try (KW_Super               <=: istring "super")           <|> 
-    -- PC.try (KW_Switch              <=: istring "switch on")       <|> 
-    -- PC.try (KW_This                <=: istring "this")            <|> 
-    -- PC.try (KW_Transient           <=: istring "transient")       <|> 
-    -- PC.try (KW_Try                 <=: istring "try")             <|> 
-    -- PC.try (KW_Void                <=: istring "void")            <|> 
-    -- PC.try (KW_While               <=: istring "while")           <|> 
-    -- PC.try (Op_Equals              <=: PS.string "==")            <|>
-    -- PC.try (Op_LThanE              <=: PS.string "<=")            <|>
-    -- PC.try (Op_GThanE              <=: PS.string ">=")            <|>
-    -- PC.try (Op_BangE               <=: PS.string "!=")            <|>
-    -- PC.try (Op_AAnd                <=: PS.string "&&")            <|>
-    -- PC.try (Op_OOr                 <=: PS.string "||")            <|>
-    -- PC.try (Op_PPlus               <=: PS.string "++")            <|>
-    -- PC.try (Op_MMinus              <=: PS.string "--")            <|>
-    -- PC.try (Op_LShift              <=: PS.string "<<")            <|>
-    -- PC.try (Op_PlusE               <=: PS.string "+=")            <|>
-    -- PC.try (Op_MinusE              <=: PS.string "-=")            <|>
-    -- PC.try (Op_StarE               <=: PS.string "*=")            <|>
-    -- PC.try (Op_SlashE              <=: PS.string "/=")            <|>
-    -- PC.try (Op_AndE                <=: PS.string "&=")            <|>
-    -- PC.try (Op_OrE                 <=: PS.string "|=")            <|>
-    -- PC.try (Op_CaretE              <=: PS.string "^=")            <|>
-    -- PC.try (Op_PercentE            <=: PS.string "%=")            <|>
-    -- PC.try (Op_LShiftE             <=: PS.string "<<=")           <|>
-    -- PC.try (Op_RShiftE             <=: PS.string ">>=")           <|>
-    -- PC.try (Op_RRShiftE            <=: PS.string ">>>=")          <|>
-    -- PC.try (OpenParen              <=: PS.char '(')               <|>
-    -- PC.try (CloseParen             <=: PS.char ')')               <|>
-    -- PC.try (OpenSquare             <=: PS.char '[')               <|>
-    -- PC.try (CloseSquare            <=: PS.char ']')               <|>
-    -- PC.try (OpenCurly              <=: PS.char '{')               <|>
-    -- PC.try (CloseCurly             <=: PS.char '}')               <|>
-    -- PC.try (Op_AtSign              <=: PS.char '@')               <|>
-    -- PC.try (SemiColon              <=: PS.char ';')               <|>
-    -- PC.try (Comma                  <=: PS.char ',')               <|>
-    -- PC.try (Period                 <=: period    )                <|>
-    -- PC.try (Op_Plus                <=: PS.char '+')               <|>
-    -- PC.try (Op_Minus               <=: PS.char '-')               <|>
-    -- PC.try (Op_Star                <=: PS.char '*')               <|>
-    -- PC.try (Op_Slash               <=: PS.char '/')               <|>
-    -- PC.try (Op_And                 <=: PS.char '&')               <|>
-    -- PC.try (Op_Or                  <=: PS.char '|')               <|>
-    -- PC.try (Op_Caret               <=: PS.char '^')               <|>
-    -- PC.try (Op_Percent             <=: PS.char '%')               <|>
-    -- PC.try (Op_Equal               <=: PS.char '=')               <|> 
-    -- PC.try (Op_GThan               <=: PS.char '>')               <|>
-    -- PC.try (Op_LThan               <=: PS.char '<')               <|>
-    -- PC.try (Op_Bang                <=: PS.char '!')               <|>
-    -- PC.try (Op_Tilde               <=: PS.char '~')               <|>
-    -- PC.try (Op_Query               <=: PS.char '?')               <|>
-    -- (Op_Colon                      <=: PS.char ':')    
-    --where 
-        -- period = (PS.char '.' <* PC.notFollowedBy PT.digit)
-        -- identTok = IdentTok <<=: identifier
+    PC.try identTok                                               <|>
+    PC.try (LongTok                <<=: longLiteral)              <|>
+    PC.try (DoubleTok              <<=: doubleLiteral)            <|>
+    PC.try (IntegerTok             <<=: integerLiteral)           <|>
+    PC.try (StringTok              <<=: stringLiteral)            <|>
+    PC.try (BoolTok                <<=: boolLiteral)              <|>
+    PC.try (Period                 <=:  period     )              <|>
+    PC.try (KW_Override            <=: istring "override" )       <|>
+    PC.try (KW_With_Share          <=: istring "with sharing" )   <|>
+    PC.try (KW_Without_Share       <=: istring "without sharing") <|> 
+    PC.try (KW_Inherit_Share       <=: istring "inherit sharing") <|>
+    PC.try (KW_Object              <=: istring "object" )         <|>
+    PC.try (KW_Time                <=: istring "time")            <|> 
+    PC.try (KW_ID                  <=: istring "id")              <|>
+    PC.try (KW_Date                <=: istring "date")            <|> 
+    PC.try (KW_Datetime            <=: istring "datetime")        <|>
+    PC.try (KW_When                <=: istring "when")            <|> 
+    PC.try (KW_Abstract            <=: istring "abstract")        <|> 
+    PC.try (KW_Integer             <=: istring "integer")         <|> 
+    PC.try (KW_String              <=: istring "string")          <|>
+    PC.try (KW_Assert              <=: istring "assert")          <|> 
+    PC.try (KW_Boolean             <=: istring "boolean")         <|> 
+    PC.try (KW_Break               <=: istring "break")           <|> 
+    PC.try (KW_Blob                <=: istring "blob")            <|> 
+    PC.try (KW_Case                <=: istring "case")            <|> 
+    PC.try (KW_Catch               <=: istring "catch")           <|> 
+    PC.try (KW_Class               <=: istring "class")           <|> 
+    PC.try (KW_Const               <=: istring "const")           <|> 
+    PC.try (KW_Continue            <=: istring "continue")        <|> 
+    PC.try (KW_WhenElse            <=: istring "when else")       <|> 
+    PC.try (KW_Double              <=: istring "double")          <|> 
+    PC.try (KW_Do                  <=: istring "do")              <|> 
+    PC.try (KW_Else                <=: istring "else")            <|> 
+    PC.try (KW_Enum                <=: istring "enum")            <|> 
+    PC.try (KW_Extends             <=: istring "extends")         <|> 
+    PC.try (KW_Final               <=: istring "final")           <|> 
+    PC.try (KW_Finally             <=: istring "finally")         <|> 
+    PC.try (KW_Decimal             <=: istring "decimal")         <|> 
+    PC.try (KW_For                 <=: istring "for")             <|> 
+    PC.try (KW_If                  <=: istring "if")              <|> 
+    PC.try (KW_Implements          <=: istring "implements")      <|> 
+    PC.try (KW_Import              <=: istring "import")          <|> 
+    PC.try (KW_Instanceof          <=: istring "instanceof")      <|> 
+    PC.try (KW_Interface           <=: istring "interface")       <|> 
+    PC.try (KW_Long                <=: istring "long")            <|> 
+    PC.try (KW_New                 <=: istring "new")             <|> 
+    PC.try (KW_Private             <=: istring "private")         <|> 
+    PC.try (KW_Virtual             <=: istring "virtual")         <|> 
+    PC.try (KW_Global              <=: istring "global")          <|> 
+    PC.try (KW_Protected           <=: istring "protected")       <|> 
+    PC.try (KW_Public              <=: istring "public")          <|> 
+    PC.try (KW_Return              <=: istring "return")          <|> 
+    PC.try (KW_Static              <=: istring "static")          <|> 
+    PC.try (KW_Super               <=: istring "super")           <|> 
+    PC.try (KW_Switch              <=: istring "switch on")       <|> 
+    PC.try (KW_This                <=: istring "this")            <|> 
+    PC.try (KW_Transient           <=: istring "transient")       <|> 
+    PC.try (KW_Try                 <=: istring "try")             <|> 
+    PC.try (KW_Void                <=: istring "void")            <|> 
+    PC.try (KW_While               <=: istring "while")           <|> 
+    PC.try (Op_Equals              <=: PS.string "==")            <|>
+    PC.try (Op_LThanE              <=: PS.string "<=")            <|>
+    PC.try (Op_GThanE              <=: PS.string ">=")            <|>
+    PC.try (Op_BangE               <=: PS.string "!=")            <|>
+    PC.try (Op_AAnd                <=: PS.string "&&")            <|>
+    PC.try (Op_OOr                 <=: PS.string "||")            <|>
+    PC.try (Op_PPlus               <=: PS.string "++")            <|>
+    PC.try (Op_MMinus              <=: PS.string "--")            <|>
+    PC.try (Op_LShift              <=: PS.string "<<")            <|>
+    PC.try (Op_PlusE               <=: PS.string "+=")            <|>
+    PC.try (Op_MinusE              <=: PS.string "-=")            <|>
+    PC.try (Op_StarE               <=: PS.string "*=")            <|>
+    PC.try (Op_SlashE              <=: PS.string "/=")            <|>
+    PC.try (Op_AndE                <=: PS.string "&=")            <|>
+    PC.try (Op_OrE                 <=: PS.string "|=")            <|>
+    PC.try (Op_CaretE              <=: PS.string "^=")            <|>
+    PC.try (Op_PercentE            <=: PS.string "%=")            <|>
+    PC.try (Op_LShiftE             <=: PS.string "<<=")           <|>
+    PC.try (Op_RShiftE             <=: PS.string ">>=")           <|>
+    PC.try (Op_RRShiftE            <=: PS.string ">>>=")          <|>
+    PC.try (OpenParen              <=: PS.char '(')               <|>
+    PC.try (CloseParen             <=: PS.char ')')               <|>
+    PC.try (OpenSquare             <=: PS.char '[')               <|>
+    PC.try (CloseSquare            <=: PS.char ']')               <|>
+    PC.try (OpenCurly              <=: PS.char '{')               <|>
+    PC.try (CloseCurly             <=: PS.char '}')               <|>
+    PC.try (Op_AtSign              <=: PS.char '@')               <|>
+    PC.try (SemiColon              <=: PS.char ';')               <|>
+    PC.try (Comma                  <=: PS.char ',')               <|>
+    PC.try (Period                 <=: period    )                <|>
+    PC.try (Op_Plus                <=: PS.char '+')               <|>
+    PC.try (Op_Minus               <=: PS.char '-')               <|>
+    PC.try (Op_Star                <=: PS.char '*')               <|>
+    PC.try (Op_Slash               <=: PS.char '/')               <|>
+    PC.try (Op_And                 <=: PS.char '&')               <|>
+    PC.try (Op_Or                  <=: PS.char '|')               <|>
+    PC.try (Op_Caret               <=: PS.char '^')               <|>
+    PC.try (Op_Percent             <=: PS.char '%')               <|>
+    PC.try (Op_Equal               <=: PS.char '=')               <|> 
+    PC.try (Op_GThan               <=: PS.char '>')               <|>
+    PC.try (Op_LThan               <=: PS.char '<')               <|>
+    PC.try (Op_Bang                <=: PS.char '!')               <|>
+    PC.try (Op_Tilde               <=: PS.char '~')               <|>
+    PC.try (Op_Query               <=: PS.char '?')               <|>
+    (Op_Colon                      <=: PS.char ':')    
+    where 
+        period = (PS.char '.' <* PC.notFollowedBy PT.digit)
+        identTok = IdentTok <<=: identifier
             
 javaLexer :: TokenParser
 javaLexer = PT.makeTokenParser javaLanguage

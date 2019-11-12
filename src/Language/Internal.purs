@@ -4,7 +4,7 @@ import Prelude
 import Control.Alt ((<|>))
 import Control.Monad.State (gets, modify_)
 import Control.Monad.Rec.Class (class MonadRec)
-import Data.List.Lazy (List, (:), uncons, singleton, some)
+import Data.List (List, (:), uncons, singleton, someRec)
 import Data.Newtype (unwrap, wrap)
 import Data.Maybe (Maybe(..), isJust)
 import Data.String (drop, length, toLower)
@@ -79,7 +79,7 @@ list :: forall m s a. Monad m => MonadRec m => ParserT s m a -> ParserT s m (Lis
 list = option mempty <<< list1
 
 list1 :: forall m s a. Monad m => MonadRec m => ParserT s m a -> ParserT s m (List a)
-list1 = some
+list1 = someRec
 
 -- | Match the specified string - case insensitive .
 istring :: String -> P String
@@ -96,7 +96,7 @@ istring str = do
 
 -- | Match one or more times.
 many1 :: forall a. P a -> P (List a)
-many1 = some
+many1 = someRec
 
 infixr 6 mkToken as <=:
 

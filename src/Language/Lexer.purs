@@ -2,7 +2,7 @@ module Language.Lexer where
 
 import Prelude 
 import Data.Either (Either(..))
-import Data.List.Lazy (List, fromFoldable, some, many)
+import Data.List (List, fromFoldable, some, many)
 import Language.Types (L, Token, P)
 import Language.Core 
 import Text.Parsing.Parser (ParseError, runParser)
@@ -17,7 +17,7 @@ runTokenizer' :: String -> Either ParseError (List (L Token))
 runTokenizer' s = runParser s tokenize 
 
 tokenize :: P (List (L Token))
-tokenize =  javaLexer.whiteSpace *> many nextToken <* eof
+tokenize =  apexLexer.whiteSpace *> many nextToken <* eof
 
 nextToken :: P (L Token)
-nextToken = javaLexer.lexeme readToken
+nextToken = apexLexer.lexeme readToken

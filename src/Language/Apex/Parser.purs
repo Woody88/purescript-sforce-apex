@@ -10,8 +10,8 @@ import Control.Lazy (fix)
 import Control.Monad.State (gets, modify_)
 import Data.Either (Either)
 import Data.Foldable (foldl)
-import Data.List.Lazy (List, (:))
-import Data.List.Lazy as List
+import Data.List (List, (:))
+import Data.List as List
 import Data.Maybe (Maybe(..), isJust, fromMaybe, maybe)
 import Data.Newtype as Newtype
 import Data.Tuple (Tuple(..))
@@ -759,7 +759,8 @@ switchStmt = fix $ \_ -> do
     pure $ SwitchBlock lbl bl
 
 switchLabel :: P SwitchLabel
-switchLabel = fix $ \_ -> PC.try (tok KW_When *> tok KW_Else *> pure WhenElse) <|>
+switchLabel = fix $ \_ -> 
+    (tok KW_WhenElse *> pure WhenElse)  <|>
     (do tok KW_When
         e <- expression
         pure $ SwitchCase e)

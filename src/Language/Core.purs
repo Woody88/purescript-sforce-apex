@@ -13,7 +13,7 @@ import Data.Traversable (traverse, sequence)
 import Data.Array as Array
 import Data.Char.Unicode (isAlpha, toLower, toUpper)
 import Data.String.CodeUnits (toCharArray)
-import Data.List.Lazy (List, toUnfoldable, fromFoldable, many)
+import Data.List (List, toUnfoldable, fromFoldable, many)
 import Data.Maybe (Maybe, maybe)
 import Data.String.CodeUnits (fromCharArray, singleton)
 import Language.Types 
@@ -27,19 +27,105 @@ import Text.Parsing.Parser.Token
 
 readToken :: P (L Token)
 readToken = 
-    try (KW_SOQL                <<=: testSOQL)                <|>
-    try (DatetimeTok            <<=: datetimeLiteral)         <|>
-    try (DateTok                <<=: dateLiteral)             <|>
+    try (KW_SOQL                <<=: testSOQL)                 <|>     
+    try (DatetimeTok            <<=: datetimeLiteral)          <|>
+    try (DateTok                <<=: dateLiteral)              <|>
     try (LongTok                <<=: longLiteral)              <|>
     try (DoubleTok              <<=: doubleLiteral)            <|>
     try (IntegerTok             <<=: integerLiteral)           <|>
     try (StringTok              <<=: stringLiteral)            <|>
     try (BoolTok                <<=: boolLiteral)              <|>
     try (Period                 <=:  period     )              <|>
-    try (KW_Override            <=: istring "override" )       <|>
+
+    -- SOQL Date Related Token 
+    try (Next_n_days             <<=: strNDate "next_n_days" )     <|> 
+    try (Last_n_days             <<=: strNDate "last_n_days" )     <|> 
+    try (N_days_ago              <<=: strNDate "n_days_ago" )      <|> 
+    try (Next_n_weeks            <<=: strNDate "next_n_weeks" )    <|> 
+    try (Last_n_weeks            <<=: strNDate "last_n_weeks" )    <|> 
+    try (N_weeks_ago             <<=: strNDate "n_weeks_ago" )     <|>
+    try (Next_n_months           <<=: strNDate "next_n_months" )   <|>
+    try (Last_n_months           <<=: strNDate "last_n_months" )   <|> 
+    try (N_months_ago            <<=: strNDate "n_months_ago" )    <|> 
+    try (Next_n_quarters         <<=: strNDate "next_n_quarters" ) <|> 
+    try (Last_n_quarters         <<=: strNDate "last_n_quarters" ) <|> 
+    try (N_quarters_ago          <<=: strNDate "n_quarters_ago" )  <|> 
+    try (Next_n_years            <<=: strNDate "next_n_years" )    <|> 
+    try (Last_n_years            <<=: strNDate "last_n_years" )    <|> 
+    try (N_years_ago             <<=: strNDate "n_years_ago" )     <|> 
+    try (Next_n_fiscal_quarters  <<=: strNDate "next_n_fiscal_quarters" ) <|> 
+    try (Last_n_fiscal_quarters  <<=: strNDate "last_n_fiscal_quarters" ) <|> 
+    try (N_fiscal_quarters_ago   <<=: strNDate "n_fiscal_quarters_ago" )  <|> 
+    try (Next_n_fiscal_years     <<=: strNDate "next_n_fiscal_years" )    <|> 
+    try (Last_n_fiscal_years     <<=: strNDate "last_n_fiscal_years" )    <|> 
+    try (N_fiscal_years_ago      <<=: strNDate "n_fiscal_years_ago" )     <|>
+    -- try (Yesterday            <=: istring "yesterday" )         <|> 
+    -- try (Today                <=: istring "today" )             <|> 
+    -- try (Tomorrow             <=: istring "tomorrow" )          <|> 
+    -- try (Last_week            <=: istring "last_week" )         <|> 
+    -- try (This_week            <=: istring "this_week" )         <|> 
+    -- try (Next_week            <=: istring "next_week" )         <|> 
+    -- try (Last_month           <=: istring "last_month" )        <|> 
+    -- try (This_month           <=: istring "this_month" )        <|> 
+    -- try (Next_month           <=: istring "next_month" )        <|> 
+    -- try (Last_90_days         <=: istring "last_90_days" )      <|> 
+    -- try (Next_90_days         <=: istring "next_90_days" )      <|> 
+    -- try (This_quarter         <=: istring "this_quarter" )      <|> 
+    -- try (Last_quarter         <=: istring "last_quarter" )      <|> 
+    -- try (Next_quarter         <=: istring "next_quarter" )      <|> 
+    -- try (This_year            <=: istring "this_year" )         <|> 
+    -- try (Last_year            <=: istring "last_year" )         <|> 
+    -- try (Next_year            <=: istring "next_year" )         <|> 
+    -- try (This_fiscal_quarter  <=: istring "this_fiscal_quarter" ) <|> 
+    -- try (Last_fiscal_quarter  <=: istring "last_fiscal_quarter" ) <|> 
+    -- try (Next_fiscal_quarter  <=: istring "next_fiscal_quarter" ) <|> 
+    -- try (This_fiscal_year     <=: istring "this_fiscal_year"    ) <|> 
+    -- try (Last_fiscal_year     <=: istring "last_fiscal_year"    ) <|> 
+    -- try (Next_fiscal_year     <=: istring "next_fiscal_year"    ) <|>
+    try (KW_Format               <=: funcLiteral "format"  )    <|> 
+    try (KW_Tolabel              <=: funcLiteral "tolabel" )    <|> 
+    try (KW_Convert_time_zone    <=: funcLiteral "converttimezone" ) <|> 
+    try (KW_Convert_currency     <=: funcLiteral "convertcurrency" ) <|> 
+    try (KW_Grouping             <=: funcLiteral "grouping" )        <|> 
+    try (KW_Distance             <=: funcLiteral "distance" )        <|> 
+    try (KW_Geolocation          <=: funcLiteral "geolocation" )     <|>
+    try (KW_Avg                  <=: funcLiteral "avg" )             <|> 
+    try (KW_Count                <=: funcLiteral "count" )           <|> 
+    try (KW_Count_distinct       <=: funcLiteral "count_distinct" )  <|> 
+    try (KW_Min                  <=: funcLiteral "min" )             <|> 
+    try (KW_Max                  <=: funcLiteral "max" )             <|> 
+    try (KW_Sum                  <=: funcLiteral "sum" )             <|>
+    try (KW_Calendar_month       <=: funcLiteral "calendar_month" )   <|> 
+    try (KW_Calendar_quarter     <=: funcLiteral "calendar_quarter" ) <|> 
+    try (KW_Calendar_year        <=: funcLiteral "calendar_year" )    <|> 
+    try (KW_Day_in_month         <=: funcLiteral "day_in_month" )     <|> 
+    try (KW_Day_in_week          <=: funcLiteral "day_in_week" )      <|> 
+    try (KW_Day_in_year          <=: funcLiteral "day_in_year" )      <|> 
+    try (KW_Day_only             <=: funcLiteral "day_only" )         <|> 
+    try (KW_Fiscal_month         <=: funcLiteral "fiscal_month" )      <|> 
+    try (KW_Fiscal_quarter       <=: funcLiteral "fiscal_quarter" )    <|> 
+    try (KW_Fiscal_year          <=: funcLiteral "fiscal_year" )       <|> 
+    try (KW_Hour_in_day          <=: funcLiteral "hour_in_day" )      <|> 
+    try (KW_Week_in_month        <=: funcLiteral "week_in_month" )    <|> 
+    try (KW_Week_in_year         <=: funcLiteral "week_in_year" )     <|>
+
     try (KW_With_Share          <=: istring "with sharing" )   <|>
     try (KW_Without_Share       <=: istring "without sharing") <|> 
     try (KW_Inherit_Share       <=: istring "inherit sharing") <|>
+    try (KW_WhenElse            <=: istring "when else")       <|> 
+    try (KW_OrderBy             <=: istring "order by")        <|>  
+    try (KW_Switch              <=: istring "switch on")       <|> 
+    try (KW_NullFirst           <=: istring "nulls first")      <|>  
+    try (KW_NullLast            <=: istring "nulls last")      <|>    
+    try (KW_GroupByCube         <=: istring "group by cube"  ) <|>     
+    try (KW_GroupByRollup       <=: istring "group by rollup") <|>  
+    try (KW_GroupBy             <=: istring "group by")        <|>   
+    try (Op_NotIn               <=: istring "not in"  )        <|>
+
+    -- Identifier     
+    identTok                                                   <|>
+
+    try (KW_Override            <=: istring "override" )       <|>
     try (KW_Object              <=: istring "object" )         <|>
     try (KW_Time                <=: istring "time")            <|> 
     try (KW_Date                <=: istring "date")            <|> 
@@ -48,7 +134,6 @@ readToken =
     try (KW_Abstract            <=: istring "abstract")        <|> 
     try (KW_Integer             <=: istring "integer")         <|> 
     try (KW_String              <=: istring "string")          <|>
-    try (KW_Assert              <=: istring "assert")          <|> 
     try (KW_Boolean             <=: istring "boolean")         <|> 
     try (KW_Break               <=: istring "break")           <|> 
     try (KW_Blob                <=: istring "blob")            <|> 
@@ -57,14 +142,12 @@ readToken =
     try (KW_Class               <=: istring "class")           <|> 
     try (KW_Const               <=: istring "const")           <|> 
     try (KW_Continue            <=: istring "continue")        <|> 
-    try (KW_WhenElse            <=: istring "when else")       <|> 
     try (KW_Double              <=: istring "double")          <|> 
-
     try (KW_Else                <=: istring "else")            <|> 
     try (KW_Enum                <=: istring "enum")            <|> 
     try (KW_Extends             <=: istring "extends")         <|> 
-    try (KW_Final               <=: istring "final")           <|> 
-    try (KW_Finally             <=: istring "finally")         <|> 
+    try (KW_Final               <=: istring "final")            <|> 
+    try (KW_Finally             <=: istring "finally")          <|> 
     try (KW_Decimal             <=: istring "decimal")         <|> 
     try (KW_Implements          <=: istring "implements")      <|> 
     try (KW_Import              <=: istring "import")          <|> 
@@ -80,25 +163,17 @@ readToken =
     try (KW_Return              <=: istring "return")          <|> 
     try (KW_Static              <=: istring "static")          <|> 
     try (KW_Super               <=: istring "super")           <|> 
-    try (KW_Switch              <=: istring "switch on")       <|> 
     try (KW_This                <=: istring "this")            <|> 
     try (KW_Transient           <=: istring "transient")       <|> 
     try (KW_Try                 <=: istring "try")             <|> 
     try (KW_Void                <=: istring "void")            <|> 
-    try (KW_While               <=: istring "while")           <|> 
-    try (KW_OrderBy   <=: istring "order by")    <|>    
+    try (KW_While               <=: istring "while")           <|>  
     try (KW_Desc      <=: istring "desc"    )    <|>  
     try (KW_Then      <=: istring "then"    )    <|>  
     try (KW_End       <=: istring "end"    )     <|>  
-    try (KW_Asc       <=: istring "asc"     )    <|>  
-
-    try (KW_NullFirst <=: istring "nulls first")  <|>   
+    try (KW_Asc       <=: istring "asc"     )    <|>   
     try (KW_From      <=: istring "from"    )    <|>
-    try (KW_GroupByCube   <=: istring "group by cube"  )  <|>     
-    try (KW_GroupByRollup <=: istring "group by rollup")  <|>  
-    try (KW_GroupBy   <=: istring "group by")    <|>   
     try (KW_Having    <=: istring "having"  )    <|>   
-    try (KW_NullLast  <=: istring "nulls last")  <|>    
     try (KW_Limit     <=: istring "limit"   )    <|>    
     try (KW_Select    <=: istring "select"  )    <|>   
     try (KW_Using     <=: istring "using"   )    <|>   
@@ -110,95 +185,18 @@ readToken =
     try (KW_Upsert    <=: istring "upsert"  )    <|> 
     try (KW_Delete    <=: istring "delete"  )    <|> 
     try (KW_Undelete  <=: istring "undelete")    <|> 
-    try (KW_Merge     <=: istring "merge"   )    <|> 
-
-    -- SOQL Date Related Token 
-    try (Next_n_days             <<=: strNDate "next_n_days" ) <|> 
-    try (Last_n_days             <<=: strNDate "last_n_days" ) <|> 
-    try (N_days_ago              <<=: strNDate "n_days_ago" ) <|> 
-    try (Next_n_weeks            <<=: strNDate "next_n_weeks" ) <|> 
-    try (Last_n_weeks            <<=: strNDate "last_n_weeks" ) <|> 
-    try (N_weeks_ago             <<=: strNDate "n_weeks_ago" ) <|>
-    try (Next_n_months           <<=: strNDate "next_n_months" ) <|>
-    try (Last_n_months           <<=: strNDate "last_n_months" ) <|> 
-    try (N_months_ago            <<=: strNDate "n_months_ago" ) <|> 
-    try (Next_n_quarters         <<=: strNDate "next_n_quarters" ) <|> 
-    try (Last_n_quarters         <<=: strNDate "last_n_quarters" ) <|> 
-    try (N_quarters_ago          <<=: strNDate "n_quarters_ago" ) <|> 
-    try (Next_n_years            <<=: strNDate "next_n_years" ) <|> 
-    try (Last_n_years            <<=: strNDate "last_n_years" ) <|> 
-    try (N_years_ago             <<=: strNDate "n_years_ago" ) <|> 
-    try (Next_n_fiscal_quarters  <<=: strNDate "next_n_fiscal_quarters" ) <|> 
-    try (Last_n_fiscal_quarters  <<=: strNDate "last_n_fiscal_quarters" ) <|> 
-    try (N_fiscal_quarters_ago   <<=: strNDate "n_fiscal_quarters_ago" ) <|> 
-    try (Next_n_fiscal_years     <<=: strNDate "next_n_fiscal_years" ) <|> 
-    try (Last_n_fiscal_years     <<=: strNDate "last_n_fiscal_years" ) <|> 
-    try (N_fiscal_years_ago      <<=: strNDate "n_fiscal_years_ago" ) <|>
-    try (Yesterday            <=: istring "yesterday" ) <|> 
-    try (Today                <=: istring "today" ) <|> 
-    try (Tomorrow             <=: istring "tomorrow" ) <|> 
-    try (Last_week            <=: istring "last_week" ) <|> 
-    try (This_week            <=: istring "this_week" ) <|> 
-    try (Next_week            <=: istring "next_week" ) <|> 
-    try (Last_month           <=: istring "last_month" ) <|> 
-    try (This_month           <=: istring "this_month" ) <|> 
-    try (Next_month           <=: istring "next_month" ) <|> 
-    try (Last_90_days         <=: istring "last_90_days" ) <|> 
-    try (Next_90_days         <=: istring "next_90_days" ) <|> 
-    try (This_quarter         <=: istring "this_quarter" ) <|> 
-    try (Last_quarter         <=: istring "last_quarter" ) <|> 
-    try (Next_quarter         <=: istring "next_quarter" ) <|> 
-    try (This_year            <=: istring "this_year" ) <|> 
-    try (Last_year            <=: istring "last_year" ) <|> 
-    try (Next_year            <=: istring "next_year" ) <|> 
-    try (This_fiscal_quarter  <=: istring "this_fiscal_quarter" ) <|> 
-    try (Last_fiscal_quarter  <=: istring "last_fiscal_quarter" ) <|> 
-    try (Next_fiscal_quarter  <=: istring "next_fiscal_quarter" ) <|> 
-    try (This_fiscal_year     <=: istring "this_fiscal_year" ) <|> 
-    try (Last_fiscal_year     <=: istring "last_fiscal_year" ) <|> 
-    try (Next_fiscal_year     <=: istring "next_fiscal_year" ) <|>
-    try (KW_Format               <=: funcLiteral "format" ) <|> 
-    try (KW_Tolabel              <=: funcLiteral "tolabel" ) <|> 
-    try (KW_Convert_time_zone    <=: funcLiteral "converttimezone" ) <|> 
-    try (KW_Convert_currency     <=: funcLiteral "convertcurrency" ) <|> 
-    try (KW_Grouping             <=: funcLiteral "grouping" ) <|> 
-    try (KW_Distance             <=: funcLiteral "distance" ) <|> 
-    try (KW_Geolocation          <=: funcLiteral "geolocation" ) <|>
-    try (KW_Avg                  <=: funcLiteral "avg" ) <|> 
-    try (KW_Count                <=: funcLiteral "count" ) <|> 
-    try (KW_Count_distinct       <=: funcLiteral "count_distinct" ) <|> 
-    try (KW_Min                  <=: funcLiteral "min" ) <|> 
-    try (KW_Max                  <=: funcLiteral "max" ) <|> 
-    try (KW_Sum                  <=: funcLiteral "sum" ) <|>
-    try (KW_Calendar_month       <=: funcLiteral "calendar_month" ) <|> 
-    try (KW_Calendar_quarter     <=: funcLiteral "calendar_quarter" ) <|> 
-    try (KW_Calendar_year        <=: funcLiteral "calendar_year" ) <|> 
-    try (KW_Day_in_month         <=: funcLiteral "day_in_month" ) <|> 
-    try (KW_Day_in_week          <=: funcLiteral "day_in_week" ) <|> 
-    try (KW_Day_in_year          <=: funcLiteral "day_in_year" ) <|> 
-    try (KW_Day_only             <=: funcLiteral "day_only" ) <|> 
-    try (KW_Fiscal_month         <=: funcLiteral "fiscal_month" ) <|> 
-    try (KW_Fiscal_quarter       <=: funcLiteral "fiscal_quarter" ) <|> 
-    try (KW_Fiscal_year          <=: funcLiteral "fiscal_year" ) <|> 
-    try (KW_Hour_in_day          <=: funcLiteral "hour_in_day" ) <|> 
-    try (KW_Week_in_month        <=: funcLiteral "week_in_month" ) <|> 
-    try (KW_Week_in_year         <=: funcLiteral "week_in_year" )  <|>
-    
-    try (KW_As                  <=: istring "as")              <|>    
-    try (KW_For                 <=: istring "for")             <|> 
-    try (KW_Do                  <=: istring "do")              <|> 
-    try (KW_If                  <=: istring "if")              <|> 
-    try (NullTok                <=: nullLiteral)               <|> 
+    try (KW_Merge     <=: istring "merge"   )    <|>                                     
+    try (KW_As        <=: istring "as")          <|>    
+    try (KW_For       <=: istring "for")         <|> 
+    try (KW_Do        <=: istring "do")          <|> 
+    try (KW_If        <=: istring "if")          <|> 
+    try (NullTok      <=: nullLiteral)           <|> 
 
 
     -- SOQL extra operator 
     try (Op_Like      <=: istring "like"    )    <|>       
     try (Op_Excludes  <=: istring "excludes")    <|>   
     try (Op_Includes  <=: istring "includes")    <|>  
-    try (Op_NotIn     <=: istring "not in"  )    <|>
-
-    identTok                                     <|>
-
     try (Op_In        <=: istring "in"      )    <|>
     try (Op_Not       <=: istring "not"     )    <|>
 
@@ -232,13 +230,12 @@ readToken =
     try (Op_AtSign              <=: char '@')               <|>
     try (SemiColon              <=: char ';')               <|>
     try (Comma                  <=: char ',')               <|>
-    try (Period                 <=: period    )                <|>
     try (Op_Plus                <=: char '+')               <|>
     try (Op_Minus               <=: char '-')               <|>
     try (Op_Star                <=: char '*')               <|>
     try (Op_Slash               <=: char '/')               <|>
     try (Op_And                 <=: andOperator)            <|>
-    try (Op_Or                  <=: orOperator)              <|>
+    try (Op_Or                  <=: orOperator)             <|>
     try (Op_Caret               <=: char '^')               <|>
     try (Op_Percent             <=: char '%')               <|>
     try (Op_Equal               <=: char '=')               <|> 
@@ -247,7 +244,8 @@ readToken =
     try (Op_Bang                <=: char '!')               <|>
     try (Op_Tilde               <=: char '~')               <|>
     try (Op_Query               <=: char '?')               <|>
-    try (Op_Colon               <=: char ':')                                                      
+    try (Op_Colon               <=: char ':')                                                          
+                         
     where 
         orOperator = (singleton <$> char '|') <|> istring "or" 
         andOperator = (singleton <$> char '&') <|> istring "and" 
@@ -255,33 +253,32 @@ readToken =
         period   = (char '.' <* notFollowedBy digit)
         strNDate fnName = istring fnName *> colon *> digits
         nullLiteral = (istring "nulls" <|> istring "null")
-        colon = javaLexer.colon
+        colon = apexLexer.colon
         identTok = IdentTok <<=: identifier
 
-javaLexer :: TokenParser
-javaLexer = makeTokenParser javaLanguage
+apexLexer :: TokenParser
+apexLexer = makeTokenParser apexLanguage
 
-javaLanguage :: LanguageDef
-javaLanguage = do 
+apexLanguage :: LanguageDef
+apexLanguage = do 
     let 
-        (LanguageDef java) = javaStyle 
-        javaStyleDef = LanguageDef $ java
-                        { reservedNames = javaReservedNames
-                        , reservedOpNames = javaReservedOpNames
+        (LanguageDef apex) = javaStyle 
+        apexStyleDef = LanguageDef $ apex
+                        { reservedNames = apexReservedNames
+                        , reservedOpNames = apexReservedOpNames
                         } 
-    javaStyleDef
+    apexStyleDef
 
-javaReservedNames = 
-    [ "override","object", "time" ,"date" ,"datetime" ,"when" ,"abstract" ,"integer" 
-    , "assert" ,"boolean" ,"break" ,"blob" ,"case" ,"catch" ,"class" ,"const" ,"continue" ,"when" ,"double" ,"do" ,"else" 
+apexReservedNames = 
+    [ "override","object", "time" ,"date" ,"datetime" ,"when" ,"abstract" ,"integer", "null", "nulls", "update", "insert"
+    , "assert" ,"boolean" ,"break" ,"blob" ,"case" ,"catch" ,"class" ,"const" ,"continue" , "double" ,"do" ,"else" 
     , "enum" ,"extends" ,"final" ,"finally" ,"decimal" ,"for" ,"if" ,"implements" ,"import" ,"instanceof" ,"interface" ,"long" 
     , "new" ,"private" ,"protected" ,"public" ,"return" ,"static" ,"super" ,"switch" ,"this" ,"transient" ,"try" ,"void" ,"while" 
-    , "virtual", "global", "string", "in", "not"
+    , "virtual", "global", "string", "in", "not", "merge", "upsert", "delete", "undelete", "as", "or", "not", "select"
+    , "from", "where", "using", "asc", "desc", "limit", "and", "then", "end", "having"
     ]
 
-    
-
-javaReservedOpNames =
+apexReservedOpNames =
     [ "=" , ">" , "<" , "!" , "~" , "?" , ":" , "==" , "===" , "<=" , ">=" , "!=" , "!==" , "&&" , "||" , "++" , "--" , "+" 
     , "-" , "*" , "/" , "&" , "|" , "^" , "%" , "<<" , ">>" , ">>>" , "+=" , "-=" , "*=" , "/=" , "&=" , "|=" , "^=" , "%=" 
     , "<<=" , ">>=" , ">>>=" , "@" 
@@ -305,8 +302,8 @@ atTok          = Op_AtSign   <=: char '@'
 commTok        = Comma       <=: char ','
 periodTok      = Period      <=: (char '.' <* notFollowedBy digit)
 
-keywordTable = HS.fromArray javaReservedNames
-operatorTable = HS.fromArray javaReservedOpNames
+keywordTable = HS.fromArray apexReservedNames
+operatorTable = HS.fromArray apexReservedOpNames
 isKeyword = flip HS.member keywordTable
 isOperator = flip HS.member operatorTable
 
@@ -317,41 +314,41 @@ testSOQL = do
     pure $ select <> rest
 
 dot :: P String 
-dot = javaLexer.dot 
+dot = apexLexer.dot 
 
 identifier :: P String
-identifier = javaLexer.identifier
+identifier = apexLexer.identifier
     -- arrChar <- Array.cons <$> javaLetter <*> Array.many (try alphaNum <|> oneOf ['_', '$'])
     -- pure $ fromCharArray arrChar
 
 -- parses a reserved name
 reserved :: String -> P Unit
-reserved = javaLexer.reserved    
+reserved = apexLexer.reserved    
 
  -- parses an operator
 reservedOp :: String -> P Unit
-reservedOp = javaLexer.reservedOp 
+reservedOp = apexLexer.reservedOp 
 
 -- parses surrounding parenthesis:
 parens :: forall t. P t -> P t
-parens = javaLexer.parens      
+parens = apexLexer.parens      
 
 brackets :: forall t. P t -> P t
-brackets = javaLexer.brackets      
+brackets = apexLexer.brackets      
 
 braces :: forall t. P t -> P t
-braces = javaLexer.braces   
+braces = apexLexer.braces   
 
 -- parses a semicolon
 semi :: P String
-semi = javaLexer.semi    
+semi = apexLexer.semi    
 
 javaLetter :: P Char
 javaLetter = satisfy (\c -> isAlpha c || c == '$' || c == '_')
 
  -- parses whitespace
 whiteSpace :: P Unit
-whiteSpace = javaLexer.whiteSpace 
+whiteSpace = apexLexer.whiteSpace 
 
 -- Apex does not support binary, octal, or hex based on the link below 
 -- https://salesforce.stackexchange.com/questions/151169/how-do-i-assign-values-to-properties-using-hexadecimal-notation-using-apex
@@ -363,7 +360,7 @@ integerLiteral = do
     pure $ x
 
 doubleLiteral :: P Number 
-doubleLiteral = javaLexer.float
+doubleLiteral = apexLexer.float
 
 longLiteral :: P BigInt.BigInt 
 longLiteral = do 
@@ -393,9 +390,9 @@ boolLiteral = readBool <$> (choice <<< map string) ["true", "false"]
 opLiteral :: P String
 -- opLiteral = (choice <<< map string) javaReservedOpNames
 opLiteral = do
-    let (LanguageDef javaLang) = javaLanguage
-    ohead <- javaLang.opStart
-    obody <- Array.many $ javaLang.opLetter
+    let (LanguageDef apexLang) = apexLanguage
+    ohead <- apexLang.opStart
+    obody <- Array.many $ apexLang.opLetter
     let o = fromCharArray $ Array.cons ohead obody
     if isOperator o 
     then pure o
@@ -403,7 +400,7 @@ opLiteral = do
 
 funcLiteral :: String -> P Unit 
 funcLiteral s = do 
-    s <- istring s
+    _ <- istring s
     _ <- lookAhead $ char '('
     pure unit
     

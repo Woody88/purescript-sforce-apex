@@ -2,7 +2,7 @@ module Language.Types where
 
 import Prelude
 import Control.Lazy (fix)
-import Data.List.Lazy (List)
+import Data.List (List)
 import Data.BigInt (BigInt)
 import Data.Newtype (class Newtype)
 import Data.Generic.Rep (class Generic)

@@ -1,8 +1,8 @@
 module Language.SOQL.Parser.Internal where 
 
-import Prelude (($), (<$>), pure, bind)
+import Prelude (($), (<$>), (>>=), (<>), show, pure, bind)
 import Control.Alt ((<|>))
-import Data.List.Lazy (List)
+import Data.List (List)
 import Data.Maybe (Maybe(..))
 import Data.String.Common (toLower)
 import Language.Internal (langToken)
@@ -96,30 +96,37 @@ getIdent = langToken $ \t -> case t of
     _       -> Nothing
 
 dateformula :: P DateFormula 
-dateformula = langToken $ \t -> case t of 
-    Yesterday               -> Just $ YESTERDAY 
-    Today                   -> Just $ TODAY 
-    Tomorrow                -> Just $ TOMORROW 
-    Last_week               -> Just $ LAST_WEEK 
-    This_week               -> Just $ THIS_WEEK 
-    Next_week               -> Just $ NEXT_WEEK 
-    Last_month              -> Just $ LAST_MONTH 
-    This_month              -> Just $ THIS_MONTH 
-    Next_month              -> Just $ NEXT_MONTH 
-    Last_90_days            -> Just $ LAST_90_DAYS 
-    Next_90_days            -> Just $ NEXT_90_DAYS 
-    This_quarter            -> Just $ THIS_QUARTER 
-    Last_quarter            -> Just $ LAST_QUARTER 
-    Next_quarter            -> Just $ NEXT_QUARTER 
-    This_year               -> Just $ THIS_YEAR 
-    Last_year               -> Just $ LAST_YEAR 
-    Next_year               -> Just $ NEXT_YEAR 
-    This_fiscal_quarter      -> Just $ THIS_FISCAL_QUARTER 
-    Last_fiscal_quarter      -> Just $ LAST_FISCAL_QUARTER 
-    Next_fiscal_quarter      -> Just $ NEXT_FISCAL_QUARTER 
-    This_fiscal_year         -> Just $ THIS_FISCAL_YEAR 
-    Last_fiscal_year         -> Just $ LAST_FISCAL_YEAR 
-    Next_fiscal_year         -> Just $ NEXT_FISCAL_YEAR 
+dateformula = dateFunction <|> dateLiteral
+
+dateFunction :: P DateFormula
+dateFunction = getIdent >>= \t ->  case toLower t of 
+    "yesterday"               -> pure $ YESTERDAY 
+    "today"                   -> pure $ TODAY 
+    "tomorrow"                -> pure $ TOMORROW 
+    "last_week"               -> pure $ LAST_WEEK 
+    "this_week"               -> pure $ THIS_WEEK 
+    "next_week"               -> pure $ NEXT_WEEK 
+    "last_month"              -> pure $ LAST_MONTH 
+    "this_month"              -> pure $ THIS_MONTH 
+    "next_month"              -> pure $ NEXT_MONTH 
+    "last_90_days"            -> pure $ LAST_90_DAYS 
+    "next_90_days"            -> pure $ NEXT_90_DAYS 
+    "this_quarter"            -> pure $ THIS_QUARTER 
+    "last_quarter"            -> pure $ LAST_QUARTER 
+    "next_quarter"            -> pure $ NEXT_QUARTER 
+    "this_year"               -> pure $ THIS_YEAR 
+    "last_year"               -> pure $ LAST_YEAR 
+    "next_year"               -> pure $ NEXT_YEAR 
+    "this_fiscal_quarter"      -> pure $ THIS_FISCAL_QUARTER 
+    "last_fiscal_quarter"      -> pure $ LAST_FISCAL_QUARTER 
+    "next_fiscal_quarter"      -> pure $ NEXT_FISCAL_QUARTER 
+    "this_fiscal_year"         -> pure $ THIS_FISCAL_YEAR 
+    "last_fiscal_year"         -> pure $ LAST_FISCAL_YEAR 
+    "next_fiscal_year"         -> pure $ NEXT_FISCAL_YEAR 
+    _                       -> fail ("unexpected dateformula: " <>  show t)
+ 
+dateLiteral :: P DateFormula
+dateLiteral = langToken $ \t -> case t of
     Next_n_days i           -> Just $ NEXT_N_DAYS i
     Last_n_days i           -> Just $ LAST_N_DAYS i
     N_days_ago i            -> Just $ N_DAYS_AGO i
@@ -142,3 +149,4 @@ dateformula = langToken $ \t -> case t of
     Last_n_fiscal_years i    -> Just $ LAST_N_FISCAL_YEARS i 
     N_fiscal_years_ago i     -> Just $ N_FISCAL_YEARS_AGO i
     _                       -> Nothing
+

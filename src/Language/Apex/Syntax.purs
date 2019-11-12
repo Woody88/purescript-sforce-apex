@@ -2,7 +2,7 @@ module Language.Apex.Syntax where
 
 import Prelude 
 import Data.Tuple (Tuple(..))
-import Data.List.Lazy (List) 
+import Data.List (List) 
 import Data.Maybe (Maybe)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
