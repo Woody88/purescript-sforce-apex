@@ -8,7 +8,7 @@ import Data.List (List, (:), uncons, singleton, someRec)
 import Data.Newtype (unwrap, wrap)
 import Data.Maybe (Maybe(..), isJust)
 import Data.String (drop, length, toLower)
-import Language.Types (L(..), Token(..), P, Pos(..))
+import Language.Types (L(..), Token(..), IdentT(..), P, Pos(..))
 import Text.Parsing.Parser.Combinators (optionMaybe, try, option)
 import Text.Parsing.Parser (ParseState(..), ParserT, fail, position)
 import Text.Parsing.Parser.Pos (updatePosString)
@@ -32,7 +32,7 @@ tok' t = token
 
 getIdent :: forall m. Monad m => ParserT (List (L Token)) m String
 getIdent = langToken $ \t -> case t of 
-    IdentTok x -> Just x
+    IdentTok (IdentT x) -> Just x
     _       -> Nothing
 
 token nextpos showt test = do

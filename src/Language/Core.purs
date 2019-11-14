@@ -27,38 +27,38 @@ import Text.Parsing.Parser.Token
 
 readToken :: P (L Token)
 readToken = 
-    try (KW_SOQL                <<=: testSOQL)                 <|>     
-    try (DatetimeTok            <<=: datetimeLiteral)          <|>
-    try (DateTok                <<=: dateLiteral)              <|>
-    try (LongTok                <<=: longLiteral)              <|>
-    try (DoubleTok              <<=: doubleLiteral)            <|>
-    try (IntegerTok             <<=: integerLiteral)           <|>
-    try (StringTok              <<=: stringLiteral)            <|>
-    try (BoolTok                <<=: boolLiteral)              <|>
-    try (Period                 <=:  period     )              <|>
+    try (SOQLTok                <<=: testSOQL)                 <|>     
+    try ((LiteralTok <<< DatetimeTok)            <<=: datetimeLiteral)          <|>
+    try ((LiteralTok <<< DateTok)                <<=: dateLiteral)              <|>
+    try ((LiteralTok <<< LongTok)                <<=: longLiteral)              <|>
+    try ((LiteralTok <<< DoubleTok)              <<=: doubleLiteral)            <|>
+    try ((LiteralTok <<< IntegerTok)             <<=: integerLiteral)           <|>
+    try ((LiteralTok <<< StringTok)              <<=: stringLiteral)            <|>
+    try ((LiteralTok <<< BoolTok)                <<=: boolLiteral)              <|>
+    try (SymbolTok Period                 <=:  period     )              <|>
 
     -- SOQL Date Related Token 
-    try (Next_n_days             <<=: strNDate "next_n_days" )     <|> 
-    try (Last_n_days             <<=: strNDate "last_n_days" )     <|> 
-    try (N_days_ago              <<=: strNDate "n_days_ago" )      <|> 
-    try (Next_n_weeks            <<=: strNDate "next_n_weeks" )    <|> 
-    try (Last_n_weeks            <<=: strNDate "last_n_weeks" )    <|> 
-    try (N_weeks_ago             <<=: strNDate "n_weeks_ago" )     <|>
-    try (Next_n_months           <<=: strNDate "next_n_months" )   <|>
-    try (Last_n_months           <<=: strNDate "last_n_months" )   <|> 
-    try (N_months_ago            <<=: strNDate "n_months_ago" )    <|> 
-    try (Next_n_quarters         <<=: strNDate "next_n_quarters" ) <|> 
-    try (Last_n_quarters         <<=: strNDate "last_n_quarters" ) <|> 
-    try (N_quarters_ago          <<=: strNDate "n_quarters_ago" )  <|> 
-    try (Next_n_years            <<=: strNDate "next_n_years" )    <|> 
-    try (Last_n_years            <<=: strNDate "last_n_years" )    <|> 
-    try (N_years_ago             <<=: strNDate "n_years_ago" )     <|> 
-    try (Next_n_fiscal_quarters  <<=: strNDate "next_n_fiscal_quarters" ) <|> 
-    try (Last_n_fiscal_quarters  <<=: strNDate "last_n_fiscal_quarters" ) <|> 
-    try (N_fiscal_quarters_ago   <<=: strNDate "n_fiscal_quarters_ago" )  <|> 
-    try (Next_n_fiscal_years     <<=: strNDate "next_n_fiscal_years" )    <|> 
-    try (Last_n_fiscal_years     <<=: strNDate "last_n_fiscal_years" )    <|> 
-    try (N_fiscal_years_ago      <<=: strNDate "n_fiscal_years_ago" )     <|>
+    try ((DateLiteralTok <<< Next_n_days)             <<=: strNDate "next_n_days" )     <|> 
+    try ((DateLiteralTok <<< Last_n_days)             <<=: strNDate "last_n_days" )     <|> 
+    try ((DateLiteralTok <<< N_days_ago)              <<=: strNDate "n_days_ago" )      <|> 
+    try ((DateLiteralTok <<< Next_n_weeks)            <<=: strNDate "next_n_weeks" )    <|> 
+    try ((DateLiteralTok <<< Last_n_weeks)            <<=: strNDate "last_n_weeks" )    <|> 
+    try ((DateLiteralTok <<< N_weeks_ago)             <<=: strNDate "n_weeks_ago" )     <|>
+    try ((DateLiteralTok <<< Next_n_months)           <<=: strNDate "next_n_months" )   <|>
+    try ((DateLiteralTok <<< Last_n_months)           <<=: strNDate "last_n_months" )   <|> 
+    try ((DateLiteralTok <<< N_months_ago)            <<=: strNDate "n_months_ago" )    <|> 
+    try ((DateLiteralTok <<< Next_n_quarters)         <<=: strNDate "next_n_quarters" ) <|> 
+    try ((DateLiteralTok <<< Last_n_quarters)         <<=: strNDate "last_n_quarters" ) <|> 
+    try ((DateLiteralTok <<< N_quarters_ago)          <<=: strNDate "n_quarters_ago" )  <|> 
+    try ((DateLiteralTok <<< Next_n_years)            <<=: strNDate "next_n_years" )    <|> 
+    try ((DateLiteralTok <<< Last_n_years)            <<=: strNDate "last_n_years" )    <|> 
+    try ((DateLiteralTok <<< N_years_ago)             <<=: strNDate "n_years_ago" )     <|> 
+    try ((DateLiteralTok <<< Next_n_fiscal_quarters)  <<=: strNDate "next_n_fiscal_quarters" ) <|> 
+    try ((DateLiteralTok <<< Last_n_fiscal_quarters)  <<=: strNDate "last_n_fiscal_quarters" ) <|> 
+    try ((DateLiteralTok <<< N_fiscal_quarters_ago)   <<=: strNDate "n_fiscal_quarters_ago" )  <|> 
+    try ((DateLiteralTok <<< Next_n_fiscal_years)     <<=: strNDate "next_n_fiscal_years" )    <|> 
+    try ((DateLiteralTok <<< Last_n_fiscal_years)     <<=: strNDate "last_n_fiscal_years" )    <|> 
+    try ((DateLiteralTok <<< N_fiscal_years_ago)      <<=: strNDate "n_fiscal_years_ago" )     <|>
     -- try (Yesterday            <=: istring "yesterday" )         <|> 
     -- try (Today                <=: istring "today" )             <|> 
     -- try (Tomorrow             <=: istring "tomorrow" )          <|> 
@@ -82,169 +82,169 @@ readToken =
     -- try (This_fiscal_year     <=: istring "this_fiscal_year"    ) <|> 
     -- try (Last_fiscal_year     <=: istring "last_fiscal_year"    ) <|> 
     -- try (Next_fiscal_year     <=: istring "next_fiscal_year"    ) <|>
-    try (KW_Format               <=: funcLiteral "format"  )    <|> 
-    try (KW_Tolabel              <=: funcLiteral "tolabel" )    <|> 
-    try (KW_Convert_time_zone    <=: funcLiteral "converttimezone" ) <|> 
-    try (KW_Convert_currency     <=: funcLiteral "convertcurrency" ) <|> 
-    try (KW_Grouping             <=: funcLiteral "grouping" )        <|> 
-    try (KW_Distance             <=: funcLiteral "distance" )        <|> 
-    try (KW_Geolocation          <=: funcLiteral "geolocation" )     <|>
-    try (KW_Avg                  <=: funcLiteral "avg" )             <|> 
-    try (KW_Count                <=: funcLiteral "count" )           <|> 
-    try (KW_Count_distinct       <=: funcLiteral "count_distinct" )  <|> 
-    try (KW_Min                  <=: funcLiteral "min" )             <|> 
-    try (KW_Max                  <=: funcLiteral "max" )             <|> 
-    try (KW_Sum                  <=: funcLiteral "sum" )             <|>
-    try (KW_Calendar_month       <=: funcLiteral "calendar_month" )   <|> 
-    try (KW_Calendar_quarter     <=: funcLiteral "calendar_quarter" ) <|> 
-    try (KW_Calendar_year        <=: funcLiteral "calendar_year" )    <|> 
-    try (KW_Day_in_month         <=: funcLiteral "day_in_month" )     <|> 
-    try (KW_Day_in_week          <=: funcLiteral "day_in_week" )      <|> 
-    try (KW_Day_in_year          <=: funcLiteral "day_in_year" )      <|> 
-    try (KW_Day_only             <=: funcLiteral "day_only" )         <|> 
-    try (KW_Fiscal_month         <=: funcLiteral "fiscal_month" )      <|> 
-    try (KW_Fiscal_quarter       <=: funcLiteral "fiscal_quarter" )    <|> 
-    try (KW_Fiscal_year          <=: funcLiteral "fiscal_year" )       <|> 
-    try (KW_Hour_in_day          <=: funcLiteral "hour_in_day" )      <|> 
-    try (KW_Week_in_month        <=: funcLiteral "week_in_month" )    <|> 
-    try (KW_Week_in_year         <=: funcLiteral "week_in_year" )     <|>
+    try (SOQLMiscFuncTok KW_Format               <=: funcLiteral "format"  )    <|> 
+    try (SOQLMiscFuncTok KW_Tolabel              <=: funcLiteral "tolabel" )    <|> 
+    try (SOQLMiscFuncTok KW_Convert_time_zone    <=: funcLiteral "converttimezone" ) <|> 
+    try (SOQLMiscFuncTok KW_Convert_currency     <=: funcLiteral "convertcurrency" ) <|> 
+    try (SOQLMiscFuncTok KW_Grouping             <=: funcLiteral "grouping" )        <|> 
+    try (SOQLLocFuncTok KW_Distance             <=: funcLiteral "distance" )        <|> 
+    try (SOQLLocFuncTok KW_Geolocation          <=: funcLiteral "geolocation" )     <|>
+    try (SOQLAggrFuncTok KW_Avg                  <=: funcLiteral "avg" )             <|> 
+    try (SOQLAggrFuncTok KW_Count                <=: funcLiteral "count" )           <|> 
+    try (SOQLAggrFuncTok KW_Count_distinct       <=: funcLiteral "count_distinct" )  <|> 
+    try (SOQLAggrFuncTok KW_Min                  <=: funcLiteral "min" )             <|> 
+    try (SOQLAggrFuncTok KW_Max                  <=: funcLiteral "max" )             <|> 
+    try (SOQLAggrFuncTok KW_Sum                  <=: funcLiteral "sum" )             <|>
+    try (SOQLDatFuncTok KW_Calendar_month       <=: funcLiteral "calendar_month" )   <|> 
+    try (SOQLDatFuncTok KW_Calendar_quarter     <=: funcLiteral "calendar_quarter" ) <|> 
+    try (SOQLDatFuncTok KW_Calendar_year        <=: funcLiteral "calendar_year" )    <|> 
+    try (SOQLDatFuncTok KW_Day_in_month         <=: funcLiteral "day_in_month" )     <|> 
+    try (SOQLDatFuncTok KW_Day_in_week          <=: funcLiteral "day_in_week" )      <|> 
+    try (SOQLDatFuncTok KW_Day_in_year          <=: funcLiteral "day_in_year" )      <|> 
+    try (SOQLDatFuncTok KW_Day_only             <=: funcLiteral "day_only" )         <|> 
+    try (SOQLDatFuncTok KW_Fiscal_month         <=: funcLiteral "fiscal_month" )      <|> 
+    try (SOQLDatFuncTok KW_Fiscal_quarter       <=: funcLiteral "fiscal_quarter" )    <|> 
+    try (SOQLDatFuncTok KW_Fiscal_year          <=: funcLiteral "fiscal_year" )       <|> 
+    try (SOQLDatFuncTok KW_Hour_in_day          <=: funcLiteral "hour_in_day" )      <|> 
+    try (SOQLDatFuncTok KW_Week_in_month        <=: funcLiteral "week_in_month" )    <|> 
+    try (SOQLDatFuncTok KW_Week_in_year         <=: funcLiteral "week_in_year" )     <|>
 
-    try (KW_With_Share          <=: istring "with sharing" )   <|>
-    try (KW_Without_Share       <=: istring "without sharing") <|> 
-    try (KW_Inherit_Share       <=: istring "inherit sharing") <|>
-    try (KW_WhenElse            <=: istring "when else")       <|> 
-    try (KW_OrderBy             <=: istring "order by")        <|>  
-    try (KW_Switch              <=: istring "switch on")       <|> 
-    try (KW_NullFirst           <=: istring "nulls first")      <|>  
-    try (KW_NullLast            <=: istring "nulls last")      <|>    
-    try (KW_GroupByCube         <=: istring "group by cube"  ) <|>     
-    try (KW_GroupByRollup       <=: istring "group by rollup") <|>  
-    try (KW_GroupBy             <=: istring "group by")        <|>   
-    try (Op_NotIn               <=: istring "not in"  )        <|>
+    try (SharingTok KW_With_Share          <=: istring "with sharing" )   <|>
+    try (SharingTok KW_Without_Share       <=: istring "without sharing") <|> 
+    try (SharingTok KW_Inherit_Share       <=: istring "inherit sharing") <|>
+    try (KeywordTok KW_WhenElse            <=: istring "when else")       <|> 
+    try (KeywordTok KW_OrderBy             <=: istring "order by")        <|>  
+    try (KeywordTok KW_Switch              <=: istring "switch on")       <|> 
+    try (KeywordTok KW_NullFirst           <=: istring "nulls first")      <|>  
+    try (KeywordTok KW_NullLast            <=: istring "nulls last")      <|>    
+    try (KeywordTok KW_GroupByCube         <=: istring "group by cube"  ) <|>     
+    try (KeywordTok KW_GroupByRollup       <=: istring "group by rollup") <|>  
+    try (KeywordTok KW_GroupBy             <=: istring "group by")        <|>   
+    try (SOQLExtraOpTok Op_NotIn               <=: istring "not in"  )        <|>
 
     -- Identifier     
     identTok                                                   <|>
 
-    try (KW_Override            <=: istring "override" )       <|>
-    try (KW_Object              <=: istring "object" )         <|>
-    try (KW_Time                <=: istring "time")            <|> 
-    try (KW_Date                <=: istring "date")            <|> 
-    try (KW_Datetime            <=: istring "datetime")        <|>
-    try (KW_When                <=: istring "when")            <|> 
-    try (KW_Abstract            <=: istring "abstract")        <|> 
-    try (KW_Integer             <=: istring "integer")         <|> 
-    try (KW_String              <=: istring "string")          <|>
-    try (KW_Boolean             <=: istring "boolean")         <|> 
-    try (KW_Break               <=: istring "break")           <|> 
-    try (KW_Blob                <=: istring "blob")            <|> 
-    try (KW_Case                <=: istring "case")            <|> 
-    try (KW_Catch               <=: istring "catch")           <|> 
-    try (KW_Class               <=: istring "class")           <|> 
-    try (KW_Const               <=: istring "const")           <|> 
-    try (KW_Continue            <=: istring "continue")        <|> 
-    try (KW_Double              <=: istring "double")          <|> 
-    try (KW_Else                <=: istring "else")            <|> 
-    try (KW_Enum                <=: istring "enum")            <|> 
-    try (KW_Extends             <=: istring "extends")         <|> 
-    try (KW_Final               <=: istring "final")            <|> 
-    try (KW_Finally             <=: istring "finally")          <|> 
-    try (KW_Decimal             <=: istring "decimal")         <|> 
-    try (KW_Implements          <=: istring "implements")      <|> 
-    try (KW_Import              <=: istring "import")          <|> 
-    try (KW_Instanceof          <=: istring "instanceof")      <|> 
-    try (KW_Interface           <=: istring "interface")       <|> 
-    try (KW_Long                <=: istring "long")            <|> 
-    try (KW_New                 <=: istring "new")             <|> 
-    try (KW_Private             <=: istring "private")         <|> 
-    try (KW_Virtual             <=: istring "virtual")         <|> 
-    try (KW_Global              <=: istring "global")          <|> 
-    try (KW_Protected           <=: istring "protected")       <|> 
-    try (KW_Public              <=: istring "public")          <|> 
-    try (KW_Return              <=: istring "return")          <|> 
-    try (KW_Static              <=: istring "static")          <|> 
-    try (KW_Super               <=: istring "super")           <|> 
-    try (KW_This                <=: istring "this")            <|> 
-    try (KW_Transient           <=: istring "transient")       <|> 
-    try (KW_Try                 <=: istring "try")             <|> 
-    try (KW_Void                <=: istring "void")            <|> 
-    try (KW_While               <=: istring "while")           <|>  
-    try (KW_Desc      <=: istring "desc"    )    <|>  
-    try (KW_Then      <=: istring "then"    )    <|>  
-    try (KW_End       <=: istring "end"    )     <|>  
-    try (KW_Asc       <=: istring "asc"     )    <|>   
-    try (KW_From      <=: istring "from"    )    <|>
-    try (KW_Having    <=: istring "having"  )    <|>   
-    try (KW_Limit     <=: istring "limit"   )    <|>    
-    try (KW_Select    <=: istring "select"  )    <|>   
-    try (KW_Using     <=: istring "using"   )    <|>   
-    try (KW_Where     <=: istring "where"   )    <|>    
+    try (KeywordTok KW_Override            <=: istring "override" )       <|>
+    try (KeywordTok KW_Object              <=: istring "object" )         <|>
+    try (KeywordTok KW_Time                <=: istring "time")            <|> 
+    try (KeywordTok KW_Date                <=: istring "date")            <|> 
+    try (KeywordTok KW_Datetime            <=: istring "datetime")        <|>
+    try (KeywordTok KW_When                <=: istring "when")            <|> 
+    try (KeywordTok KW_Abstract            <=: istring "abstract")        <|> 
+    try (KeywordTok KW_Integer             <=: istring "integer")         <|> 
+    try (KeywordTok KW_String              <=: istring "string")          <|>
+    try (KeywordTok KW_Boolean             <=: istring "boolean")         <|> 
+    try (KeywordTok KW_Break               <=: istring "break")           <|> 
+    try (KeywordTok KW_Blob                <=: istring "blob")            <|> 
+    try (KeywordTok KW_Case                <=: istring "case")            <|> 
+    try (KeywordTok KW_Catch               <=: istring "catch")           <|> 
+    try (KeywordTok KW_Class               <=: istring "class")           <|> 
+    try (KeywordTok KW_Const               <=: istring "const")           <|> 
+    try (KeywordTok KW_Continue            <=: istring "continue")        <|> 
+    try (KeywordTok KW_Double              <=: istring "double")          <|> 
+    try (KeywordTok KW_Else                <=: istring "else")            <|> 
+    try (KeywordTok KW_Enum                <=: istring "enum")            <|> 
+    try (KeywordTok KW_Extends             <=: istring "extends")         <|> 
+    try (KeywordTok KW_Final               <=: istring "final")            <|> 
+    try (KeywordTok KW_Finally             <=: istring "finally")          <|> 
+    try (KeywordTok KW_Decimal             <=: istring "decimal")         <|> 
+    try (KeywordTok KW_Implements          <=: istring "implements")      <|> 
+    try (KeywordTok KW_Import              <=: istring "import")          <|> 
+    try (KeywordTok KW_Instanceof          <=: istring "instanceof")      <|> 
+    try (KeywordTok KW_Interface           <=: istring "interface")       <|> 
+    try (KeywordTok KW_Long                <=: istring "long")            <|> 
+    try (KeywordTok KW_New                 <=: istring "new")             <|> 
+    try (KeywordTok KW_Private             <=: istring "private")         <|> 
+    try (KeywordTok KW_Virtual             <=: istring "virtual")         <|> 
+    try (KeywordTok KW_Global              <=: istring "global")          <|> 
+    try (KeywordTok KW_Protected           <=: istring "protected")       <|> 
+    try (KeywordTok KW_Public              <=: istring "public")          <|> 
+    try (KeywordTok KW_Return              <=: istring "return")          <|> 
+    try (KeywordTok KW_Static              <=: istring "static")          <|> 
+    try (KeywordTok KW_Super               <=: istring "super")           <|> 
+    try (KeywordTok KW_This                <=: istring "this")            <|> 
+    try (KeywordTok KW_Transient           <=: istring "transient")       <|> 
+    try (KeywordTok KW_Try                 <=: istring "try")             <|> 
+    try (KeywordTok KW_Void                <=: istring "void")            <|> 
+    try (KeywordTok KW_While               <=: istring "while")           <|>  
+    try (KeywordTok KW_Desc      <=: istring "desc"    )    <|>  
+    try (KeywordTok KW_Then      <=: istring "then"    )    <|>  
+    try (KeywordTok KW_End       <=: istring "end"    )     <|>  
+    try (KeywordTok KW_Asc       <=: istring "asc"     )    <|>   
+    try (KeywordTok KW_From      <=: istring "from"    )    <|>
+    try (KeywordTok KW_Having    <=: istring "having"  )    <|>   
+    try (KeywordTok KW_Limit     <=: istring "limit"   )    <|>    
+    try (KeywordTok KW_Select    <=: istring "select"  )    <|>   
+    try (KeywordTok KW_Using     <=: istring "using"   )    <|>   
+    try (KeywordTok KW_Where     <=: istring "where"   )    <|>    
 
     -- DML Keywords
-    try (KW_Update    <=: istring "update"  )    <|> 
-    try (KW_Insert    <=: istring "insert"  )    <|> 
-    try (KW_Upsert    <=: istring "upsert"  )    <|> 
-    try (KW_Delete    <=: istring "delete"  )    <|> 
-    try (KW_Undelete  <=: istring "undelete")    <|> 
-    try (KW_Merge     <=: istring "merge"   )    <|>                                     
-    try (KW_As        <=: istring "as")          <|>    
-    try (KW_For       <=: istring "for")         <|> 
-    try (KW_Do        <=: istring "do")          <|> 
-    try (KW_If        <=: istring "if")          <|> 
-    try (NullTok      <=: nullLiteral)           <|> 
+    try (DMLOpTok KW_Update    <=: istring "update"  )    <|> 
+    try (DMLOpTok KW_Insert    <=: istring "insert"  )    <|> 
+    try (DMLOpTok KW_Upsert    <=: istring "upsert"  )    <|> 
+    try (DMLOpTok KW_Delete    <=: istring "delete"  )    <|> 
+    try (DMLOpTok KW_Undelete  <=: istring "undelete")    <|> 
+    try (DMLOpTok KW_Merge     <=: istring "merge"   )    <|>                                     
+    try (KeywordTok KW_As        <=: istring "as")          <|>    
+    try (KeywordTok KW_For       <=: istring "for")         <|> 
+    try (KeywordTok KW_Do        <=: istring "do")          <|> 
+    try (KeywordTok KW_If        <=: istring "if")          <|> 
+    try (LiteralTok NullTok      <=: nullLiteral)           <|> 
 
 
     -- SOQL extra operator 
-    try (Op_Like      <=: istring "like"    )    <|>       
-    try (Op_Excludes  <=: istring "excludes")    <|>   
-    try (Op_Includes  <=: istring "includes")    <|>  
-    try (Op_In        <=: istring "in"      )    <|>
-    try (Op_Not       <=: istring "not"     )    <|>
+    try (SOQLExtraOpTok Op_Like      <=: istring "like"    )    <|>       
+    try (SOQLExtraOpTok Op_Excludes  <=: istring "excludes")    <|>   
+    try (SOQLExtraOpTok Op_Includes  <=: istring "includes")    <|>  
+    try (SOQLExtraOpTok Op_In        <=: istring "in"      )    <|>
+    try (SOQLExtraOpTok Op_Not       <=: istring "not"     )    <|>
 
     -- Operations & Symbols
-    try (Op_Equals              <=: string "==")            <|>
-    try (Op_LThanE              <=: string "<=")            <|>
-    try (Op_GThanE              <=: string ">=")            <|>
-    try (Op_NotEq               <=: notEqual   )            <|>
-    try (Op_AAnd                <=: string "&&")            <|>
-    try (Op_OOr                 <=: string "||")            <|>
-    try (Op_PPlus               <=: string "++")            <|>
-    try (Op_MMinus              <=: string "--")            <|>
-    try (Op_LShift              <=: string "<<")            <|>
-    try (Op_PlusE               <=: string "+=")            <|>
-    try (Op_MinusE              <=: string "-=")            <|>
-    try (Op_StarE               <=: string "*=")            <|>
-    try (Op_SlashE              <=: string "/=")            <|>
-    try (Op_AndE                <=: string "&=")            <|>
-    try (Op_OrE                 <=: string "|=")            <|>
-    try (Op_CaretE              <=: string "^=")            <|>
-    try (Op_PercentE            <=: string "%=")            <|>
-    try (Op_LShiftE             <=: string "<<=")           <|>
-    try (Op_RShiftE             <=: string ">>=")           <|>
-    try (Op_RRShiftE            <=: string ">>>=")          <|>
-    try (OpenParen              <=: char '(')               <|>
-    try (CloseParen             <=: char ')')               <|>
-    try (OpenSquare             <=: char '[')               <|>
-    try (CloseSquare            <=: char ']')               <|>
-    try (OpenCurly              <=: char '{')               <|>
-    try (CloseCurly             <=: char '}')               <|>
-    try (Op_AtSign              <=: char '@')               <|>
-    try (SemiColon              <=: char ';')               <|>
-    try (Comma                  <=: char ',')               <|>
-    try (Op_Plus                <=: char '+')               <|>
-    try (Op_Minus               <=: char '-')               <|>
-    try (Op_Star                <=: char '*')               <|>
-    try (Op_Slash               <=: char '/')               <|>
-    try (Op_And                 <=: andOperator)            <|>
-    try (Op_Or                  <=: orOperator)             <|>
-    try (Op_Caret               <=: char '^')               <|>
-    try (Op_Percent             <=: char '%')               <|>
-    try (Op_Equal               <=: char '=')               <|> 
-    try (Op_GThan               <=: char '>')               <|>
-    try (Op_LThan               <=: char '<')               <|>
-    try (Op_Bang                <=: char '!')               <|>
-    try (Op_Tilde               <=: char '~')               <|>
-    try (Op_Query               <=: char '?')               <|>
-    try (Op_Colon               <=: char ':')                                                          
+    try (OperatorTok Op_Equals              <=: string "==")            <|>
+    try (OperatorTok Op_LThanE              <=: string "<=")            <|>
+    try (OperatorTok Op_GThanE              <=: string ">=")            <|>
+    try (SOQLExtraOpTok Op_NotEq               <=: notEqual   )            <|>
+    try (OperatorTok Op_AAnd                <=: string "&&")            <|>
+    try (OperatorTok Op_OOr                 <=: string "||")            <|>
+    try (OperatorTok Op_PPlus               <=: string "++")            <|>
+    try (OperatorTok Op_MMinus              <=: string "--")            <|>
+    try (OperatorTok Op_LShift              <=: string "<<")            <|>
+    try (OperatorTok Op_PlusE               <=: string "+=")            <|>
+    try (OperatorTok Op_MinusE              <=: string "-=")            <|>
+    try (OperatorTok Op_StarE               <=: string "*=")            <|>
+    try (OperatorTok Op_SlashE              <=: string "/=")            <|>
+    try (OperatorTok Op_AndE                <=: string "&=")            <|>
+    try (OperatorTok Op_OrE                 <=: string "|=")            <|>
+    try (OperatorTok Op_CaretE              <=: string "^=")            <|>
+    try (OperatorTok Op_PercentE            <=: string "%=")            <|>
+    try (OperatorTok Op_LShiftE             <=: string "<<=")           <|>
+    try (OperatorTok Op_RShiftE             <=: string ">>=")           <|>
+    try (OperatorTok Op_RRShiftE            <=: string ">>>=")          <|>
+    try (SymbolTok OpenParen              <=: char '(')               <|>
+    try (SymbolTok CloseParen             <=: char ')')               <|>
+    try (SymbolTok OpenSquare             <=: char '[')               <|>
+    try (SymbolTok CloseSquare            <=: char ']')               <|>
+    try (SymbolTok OpenCurly              <=: char '{')               <|>
+    try (SymbolTok CloseCurly             <=: char '}')               <|>
+    try (SymbolTok SemiColon              <=: char ';')               <|>
+    try (SymbolTok Comma                  <=: char ',')               <|>
+    try (OperatorTok Op_AtSign              <=: char '@')               <|>
+    try (OperatorTok Op_Plus                <=: char '+')               <|>
+    try (OperatorTok Op_Minus               <=: char '-')               <|>
+    try (OperatorTok Op_Star                <=: char '*')               <|>
+    try (OperatorTok Op_Slash               <=: char '/')               <|>
+    try (OperatorTok Op_And                 <=: andOperator)            <|>
+    try (OperatorTok Op_Or                  <=: orOperator)             <|>
+    try (OperatorTok Op_Caret               <=: char '^')               <|>
+    try (OperatorTok Op_Percent             <=: char '%')               <|>
+    try (OperatorTok Op_Equal               <=: char '=')               <|> 
+    try (OperatorTok Op_GThan               <=: char '>')               <|>
+    try (OperatorTok Op_LThan               <=: char '<')               <|>
+    try (OperatorTok Op_Bang                <=: char '!')               <|>
+    try (OperatorTok Op_Tilde               <=: char '~')               <|>
+    try (OperatorTok Op_Query               <=: char '?')               <|>
+    try (OperatorTok Op_Colon               <=: char ':')                                                          
                          
     where 
         orOperator = (singleton <$> char '|') <|> istring "or" 
@@ -254,7 +254,7 @@ readToken =
         strNDate fnName = istring fnName *> colon *> digits
         nullLiteral = (istring "nulls" <|> istring "null")
         colon = apexLexer.colon
-        identTok = IdentTok <<=: identifier
+        identTok = (IdentTok <<< IdentT) <<=: identifier
 
 apexLexer :: TokenParser
 apexLexer = makeTokenParser apexLanguage
@@ -285,22 +285,22 @@ apexReservedOpNames =
     ]
 
 
-intTok         = IntegerTok  <<=: integerLiteral
-doubleTok      = DoubleTok   <<=: doubleLiteral
-longTok        = LongTok     <<=: longLiteral
-stringTok      = StringTok   <<=: stringLiteral
-boolTok        = BoolTok     <<=: boolLiteral
-opTok          = OpTok       <<=: opLiteral
-lParenTok      = OpenParen   <=: char '('
-rParenTok      = CloseParen  <=: char ')'
-lSquareTok     = OpenSquare  <=: char '['
-rSquareTok     = CloseSquare <=: char ']'
-lBraceTok      = OpenCurly   <=: char '{'
-rBraceTok      = CloseCurly  <=: char '}'
-semiColonTok   = SemiColon   <=: char ';'
-atTok          = Op_AtSign   <=: char '@'
-commTok        = Comma       <=: char ','
-periodTok      = Period      <=: (char '.' <* notFollowedBy digit)
+intTok         = (LiteralTok <<< IntegerTok)  <<=: integerLiteral
+doubleTok      = (LiteralTok <<< DoubleTok)   <<=: doubleLiteral
+longTok        = (LiteralTok <<< LongTok)     <<=: longLiteral
+stringTok      = (LiteralTok <<< StringTok)   <<=: stringLiteral
+boolTok        = (LiteralTok <<< BoolTok)     <<=: boolLiteral
+opTok          = (OperatorTok <<< OpTok )     <<=: opLiteral
+lParenTok      = SymbolTok OpenParen   <=: char '('
+rParenTok      = SymbolTok CloseParen  <=: char ')'
+lSquareTok     = SymbolTok OpenSquare  <=: char '['
+rSquareTok     = SymbolTok CloseSquare <=: char ']'
+lBraceTok      = SymbolTok OpenCurly   <=: char '{'
+rBraceTok      = SymbolTok CloseCurly  <=: char '}'
+semiColonTok   = SymbolTok SemiColon   <=: char ';'
+atTok          = OperatorTok Op_AtSign <=: char '@'
+commTok        = SymbolTok Comma       <=: char ','
+periodTok      = SymbolTok Period      <=: (char '.' <* notFollowedBy digit)
 
 keywordTable = HS.fromArray apexReservedNames
 operatorTable = HS.fromArray apexReservedOpNames

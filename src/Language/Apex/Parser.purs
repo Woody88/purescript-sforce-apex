@@ -16,8 +16,7 @@ import Data.Maybe (Maybe(..), isJust, fromMaybe, maybe)
 import Data.Newtype as Newtype
 import Data.Tuple (Tuple(..))
 import Language.Apex.Lexer (lexApex)
-import Language.Types (Token(..))
-import Language.Types (L(..))
+import Language.Types (Token(..), L(..), KeywordT(..), OperatorT(..), LiteralT(..), DMLOpT(..), SharingT(..), IdentT(..), SymbolT(..))
 import Language.Internal (langToken, tok', optMaybe, empty, bopt, lopt, tok, seplist, seplist1, list, list1)
 import Language.Apex.Syntax.Types (DML(..), ClassType(..), Ident(..), Literal(..), Name(..), PrimType(..), RefType(..), Type(..), TypeArgument(..), TypeParam(..))
 import Text.Parsing.Parser (ParseState(..), Parser, ParseError, runParser, fail)
@@ -40,22 +39,22 @@ compilationUnit = do
 
 literal :: P Literal
 literal = langToken $ \t -> case t of
-    IntegerTok i -> Just (Integer i)
-    LongTok    l -> Just (Long l)
-    DoubleTok  d -> Just (Double d)
-    StringTok  s -> Just (String s)
-    BoolTok    b -> Just (Boolean b)
-    NullTok      -> Just Null 
+    LiteralTok (IntegerTok i) -> Just (Integer i)
+    LiteralTok (LongTok    l) -> Just (Long l)
+    LiteralTok (DoubleTok  d) -> Just (Double d)
+    LiteralTok (StringTok  s) -> Just (String s)
+    LiteralTok (BoolTok    b) -> Just (Boolean b)
+    LiteralTok (NullTok)      -> Just Null 
     _ -> Nothing
 
 dml :: P DML 
 dml = langToken $ \t -> case t of
-    KW_Update   -> Just $ Update
-    KW_Insert   -> Just $ Insert
-    KW_Upsert   -> Just $ Upsert
-    KW_Delete   -> Just $ Delete
-    KW_Undelete -> Just $ Undelete
-    KW_Merge    -> Just $ Merge   
+    DMLOpTok (KW_Update)   -> Just $ Update
+    DMLOpTok (KW_Insert)   -> Just $ Insert
+    DMLOpTok (KW_Upsert)   -> Just $ Upsert
+    DMLOpTok (KW_Delete)   -> Just $ Delete
+    DMLOpTok (KW_Undelete) -> Just $ Undelete
+    DMLOpTok (KW_Merge)    -> Just $ Merge   
     _ -> Nothing
 
 name :: P Name
@@ -63,7 +62,7 @@ name = Name <$> seplist1 ident period
 
 ident :: P Ident
 ident = langToken $ \t -> case t of
-    IdentTok s -> Just $ Ident s
+    IdentTok (IdentT s) -> Just $ Ident s
     _ -> Nothing
 
 fieldDecl :: P (Mod MemberDecl)
@@ -116,7 +115,7 @@ classDecl = fix $ \_ -> normalClassDecl <|> enumClassDecl
 
 normalClassDecl :: P (Mod ClassDecl)
 normalClassDecl = do 
-    tok KW_Class 
+    tok (KeywordTok KW_Class) 
     i    <- ident 
     tps  <- lopt typeParams
     ext  <- optMaybe extends 
@@ -126,7 +125,7 @@ normalClassDecl = do
 
 enumClassDecl :: P (Mod ClassDecl)
 enumClassDecl = do
-    tok KW_Enum
+    tok (KeywordTok KW_Enum)
     i   <- ident
     imp <- lopt implements
     bod <- enumBody
@@ -161,7 +160,7 @@ classBodyStatement =
        _ <- list1 semiColon
        pure Nothing) <|>
     (PC.try $ do
-       mst <- bopt (tok KW_Static)
+       mst <- bopt (tok (KeywordTok KW_Static))
        blk <- block
        pure $ Just $ InitDecl mst blk) <|>
     (PC.try $ do 
@@ -200,18 +199,18 @@ explConstrInv :: P ExplConstrInv
 explConstrInv = endSemi $
     (PC.try $ do
         tas <- lopt refTypeArgs
-        tok KW_This
+        tok (KeywordTok KW_This)
         as  <- args
         pure $ ThisInvoke tas as) <|>
     (PC.try $ do
         tas <- lopt refTypeArgs
-        tok KW_Super
+        tok (KeywordTok KW_Super)
         as  <- args
         pure $ SuperInvoke tas as) <|>
     (do pri <- fix $ \_ -> primary
         period
         tas <- lopt refTypeArgs
-        tok KW_Super
+        tok (KeywordTok KW_Super)
         as  <- args
         pure $ PrimarySuperInvoke pri tas as)
 
@@ -222,7 +221,7 @@ args = parens $ seplist (fix $ \_ -> expression) comma
 
 interfaceDecl :: P (Mod InterfaceDecl)
 interfaceDecl = do
-    tok KW_Interface
+    tok (KeywordTok KW_Interface)
     id  <- ident
     tps <- lopt typeParams
     exs <- lopt extends
@@ -255,24 +254,24 @@ absMethodDecl = do
 
 modifier :: P Modifier
 modifier =
-        tok KW_Static        *> pure Static
-    <|> tok KW_Public        *> pure Public
-    <|> tok KW_Protected     *> pure Protected
-    <|> tok KW_Private       *> pure Private
-    <|> tok KW_Abstract      *> pure Abstract
-    <|> tok KW_Global        *> pure Global
-    <|> tok KW_Virtual       *> pure Virtual
-    <|> tok KW_Final         *> pure Final
-    <|> tok KW_Transient     *> pure Transient
-    <|> tok KW_With_Share    *> pure With_Share
-    <|> tok KW_Without_Share *> pure Without_Share
-    <|> tok KW_Inherit_Share *> pure Inherit_Share
-    <|> tok KW_Override      *> pure Override 
+        tok (KeywordTok KW_Static)        *> pure Static
+    <|> tok (KeywordTok KW_Public)        *> pure Public
+    <|> tok (KeywordTok KW_Protected)     *> pure Protected
+    <|> tok (KeywordTok KW_Private)       *> pure Private
+    <|> tok (KeywordTok KW_Abstract)      *> pure Abstract
+    <|> tok (KeywordTok KW_Global)        *> pure Global
+    <|> tok (KeywordTok KW_Virtual)       *> pure Virtual
+    <|> tok (KeywordTok KW_Final)         *> pure Final
+    <|> tok (KeywordTok KW_Transient)     *> pure Transient
+    <|> tok (SharingTok KW_With_Share)    *> pure With_Share
+    <|> tok (SharingTok KW_Without_Share) *> pure Without_Share
+    <|> tok (SharingTok KW_Inherit_Share) *> pure Inherit_Share
+    <|> tok (KeywordTok KW_Override)      *> pure Override 
     <|> Annotation <$> (fix $ \_ -> annotation)
 
 annotation :: P Annotation
 annotation = do 
-    annName <- tok Op_AtSign *> name
+    annName <- tok (OperatorTok Op_AtSign) *> name
     PC.try (parens evlist >>= \annKV -> pure $ NormalAnnotation { annName,  annKV }) <|> (pure $ MarkerAnnotation { annName })
 
 
@@ -280,7 +279,7 @@ evlist :: P (List (Tuple Ident ElementValue))
 evlist = fix $ \_ -> list elementValuePair 
 
 elementValuePair :: P (Tuple Ident ElementValue)
-elementValuePair = fix $ \_ -> Tuple <$> ident <* tok Op_Equal <*> elementValue
+elementValuePair = fix $ \_ -> Tuple <$> ident <* tok (OperatorTok Op_Equal) <*> elementValue
 
 elementValue :: P ElementValue
 elementValue = fix $ \_ -> EVVal <$> InitExp <$> infixExp
@@ -303,7 +302,7 @@ accessor = fix $ \_ -> do
     pure $ Accessor md acv vi
 
 accessorVar :: P AccessorVar
-accessorVar = (tok (IdentTok "get") *> pure Getter) <|> tok (IdentTok "set") *> pure Setter <?> "Unpexpected token at accessor position"
+accessorVar = (tok (IdentTok $ IdentT "get") *> pure Getter) <|> tok (IdentTok $ IdentT "set") *> pure Setter <?> "Unpexpected token at accessor position"
 
 varDecls :: P (List VarDecl)
 varDecls = fix $ \_ -> seplist1 varDecl comma 
@@ -311,7 +310,7 @@ varDecls = fix $ \_ -> seplist1 varDecl comma
 varDecl :: P VarDecl 
 varDecl = do
     vdi <- varDeclId
-    vi  <- optMaybe $ tok Op_Equal *> varInit 
+    vi  <- optMaybe $ tok (OperatorTok Op_Equal) *> varInit 
     pure $ VarDecl vdi vi 
     
 varDeclId :: P VarDeclId 
@@ -390,7 +389,7 @@ methodInvocationSuffix = do
 
 methodInvocationNPS :: P MethodInvocation
 methodInvocationNPS =
-    (do tok KW_Super *> period
+    (do tok (KeywordTok KW_Super) *> period
         rts <- lopt refTypeArgs
         i   <- ident
         as  <- args
@@ -400,7 +399,7 @@ methodInvocationNPS =
                 as <- args
                 pure $ \n -> MethodCall n as) <|>
              (period *> do
-                msp <- optMaybe (tok KW_Super *> period)
+                msp <- optMaybe (tok (KeywordTok KW_Super) *> period)
                 rts <- lopt refTypeArgs
                 i   <- ident
                 as  <- args
@@ -422,7 +421,7 @@ methodInvocationExp = fix $ \_ ->
 
 instanceCreationNPS :: P Exp
 instanceCreationNPS = do 
-    tok KW_New
+    tok (KeywordTok KW_New)
     tas <- lopt typeArgs
     ct  <- classType
     as  <- args
@@ -443,28 +442,22 @@ instanceCreation = fix $ \_ ->
 primary :: P Exp 
 primary = fix $ \_ -> primaryNPS |>> primarySuffix
 
-    -- flip PC.withErrorMessage "primary expression" $ PC.choice $ map PC.try 
-    --     [ (Lit <$> literal)
-    --     , const This <$> tok KW_This 
-    --     , fix $ \_ -> arrayCreation
-    --     ]
-
 primaryNPS :: P Exp
 primaryNPS = fix $ \_ -> PC.try arrayCreation <|> primaryNoNewArrayNPS
 
 primaryNoNewArrayNPS :: P Exp
 primaryNoNewArrayNPS = fix $ \_ -> 
     Lit <$> literal <|>
-    const This <$> tok KW_This <|>
+    const This <$> tok (KeywordTok KW_This) <|>
     parens (fix $ \_ -> expression) <|>
     -- TODO: These two following should probably be merged more
     (PC.try $ do
         rt <- resultType
-        period *> tok KW_Class
+        period *> tok (KeywordTok KW_Class)
         pure $ ClassLit rt) <|>
     (PC.try $ do
         n <- name
-        period *> tok KW_This
+        period *> tok (KeywordTok KW_This)
         pure $ ThisClass n) <|>
     PC.try instanceCreationNPS <|>
     PC.try (MethodInv <$> methodInvocationNPS) <|>
@@ -491,7 +484,7 @@ nonArrayType = PrimType <$> primType <|> RefType <$> ClassRefType <$> classType
 
 arrayCreation :: P Exp
 arrayCreation = do
-    tok KW_New
+    tok (KeywordTok KW_New)
     tp <- nonArrayType
     f <- (PC.try $ do
              ds <- list1 $ brackets empty
@@ -511,7 +504,7 @@ condExp = fix $ \_ -> do
 
 condExpSuffix :: P (Exp -> Exp)
 condExpSuffix = fix $ \_ ->  do
-    tok Op_Query
+    tok (OperatorTok Op_Query)
     th <- expression
     _ <- colon
     el <- condExp
@@ -532,7 +525,7 @@ infixExpSuffix =
     (do op <- infixOp
         e2 <- unaryExp
         pure $ \e1 -> BinOp e1 op e2) <|>
-    (do tok KW_Instanceof
+    (do tok (KeywordTok KW_Instanceof)
         t  <- refType
         pure $ \e1 -> InstanceOf e1 t)
 
@@ -561,11 +554,11 @@ postfixExpNES = fix $ \_ -> PC.try primary <|> ExpName <$> name
 
 fieldAccessNPS :: P FieldAccess
 fieldAccessNPS =
-    (do tok KW_Super *> period
+    (do tok (KeywordTok KW_Super) *> period
         i <- ident
         pure $ SuperFieldAccess i) <|>
     (do n <- name
-        period *> tok KW_Super *> period
+        period *> tok (KeywordTok KW_Super) *> period
         i <- ident
         pure $ ClassFieldAccess n i)
 
@@ -588,7 +581,7 @@ fieldAccess = fix $ \_ ->
 
 instanceCreationSuffix :: P (Exp -> Exp)
 instanceCreationSuffix = do 
-    period *> tok KW_New
+    period *> tok (KeywordTok KW_New)
     tas <- lopt typeArgs
     i   <- ident
     as  <- args
@@ -599,22 +592,22 @@ stmt :: P Stmt
 stmt = ifStmt <|> whileStmt <|> forStmt <|> labeledStmt <|> stmtNoTrail
   where
     ifStmt = do
-        tok KW_If
+        tok (KeywordTok KW_If)
         e   <- parens expression
         (PC.try $
             do th <- stmtNSI
-               tok KW_Else
+               tok (KeywordTok KW_Else)
                el <- stmt
                pure $ IfThenElse e th el) <|>
            (do th <- stmt
                pure $ IfThen e th)
     whileStmt = do
-        tok KW_While
+        tok (KeywordTok KW_While)
         e   <- parens expression
         s   <- stmt
         pure $ While e s
     forStmt = do
-        tok KW_For
+        tok (KeywordTok KW_For)
         f <- parens $
             (PC.try $ do
                 fi <- optMaybe forInit
@@ -642,19 +635,19 @@ stmtNSI :: P Stmt
 stmtNSI = ifStmt <|> whileStmt <|> forStmt <|> labeledStmt <|> stmtNoTrail
   where
     ifStmt = do
-        tok KW_If
+        tok (KeywordTok KW_If)
         e  <- parens expression
         th <- stmtNSI
-        tok KW_Else
+        tok (KeywordTok KW_Else)
         el <- stmtNSI
         pure $ IfThenElse e th el
     whileStmt = do
-        tok KW_While
+        tok (KeywordTok KW_While)
         e <- parens expression
         s <- stmtNSI
         pure $ While e s
     forStmt = do
-        tok KW_For
+        tok (KeywordTok KW_For)
         f <- parens $ (PC.try $ do
             fi <- optMaybe forInit
             semiColon
@@ -685,49 +678,49 @@ stmtNoTrail = fix $ \_ ->
     StmtBlock <$> block <|>
     -- assertions
     (endSemi $ do
-        tok KW_Assert
+        tok (KeywordTok KW_Assert)
         e   <- expression
         me2 <- optMaybe $ colon *> expression
         pure $ Assert e me2) <|>
     -- switch stmts
 
-    (do tok KW_Switch
+    (do tok (KeywordTok KW_Switch)
         e  <- PC.try (parens expression) <|> expression
         sb <- switchBlock
         pure $ Switch e sb) <|>
 
     -- do-while loops
     (endSemi $ do
-        tok KW_Do
+        tok (KeywordTok KW_Do)
         s <- stmt
-        tok KW_While
+        tok (KeywordTok KW_While)
         e <- parens expression
         pure $ Do s e) <|>
     -- break
     (endSemi $ do
-        tok KW_Break
+        tok (KeywordTok KW_Break)
         mi <- optMaybe ident
         pure $ Break mi) <|>
     -- continue
     (endSemi $ do
-        tok KW_Continue
+        tok (KeywordTok KW_Continue)
         mi <- optMaybe ident
         pure $ Continue mi) <|>
     -- pure
     (endSemi $ do
-        tok KW_Return
+        tok (KeywordTok KW_Return)
         me <- optMaybe expression
         pure $ Return me) <|>
     -- throw
     (endSemi $ do
-        tok KW_Throw
+        tok (KeywordTok KW_Throw)
         e <- expression
         pure $ Throw e) <|>
     -- try-catch, both with and without a finally clause
-    (do tok KW_Try
+    (do tok (KeywordTok KW_Try)
         b <- block
         c <- list catch
-        mf <- optMaybe $ tok KW_Finally *> block
+        mf <- optMaybe $ tok (KeywordTok KW_Finally) *> block
         -- TODO: here we should check that there exists at
         -- least one catch or finally clause
         pure $ Try b c mf) <|>
@@ -760,14 +753,14 @@ switchStmt = fix $ \_ -> do
 
 switchLabel :: P SwitchLabel
 switchLabel = fix $ \_ -> 
-    (tok KW_WhenElse *> pure WhenElse)  <|>
-    (do tok KW_When
+    (tok (KeywordTok KW_WhenElse) *> pure WhenElse)  <|>
+    (do tok (KeywordTok KW_When)
         e <- expression
         pure $ SwitchCase e)
 
 catch :: P Catch
 catch = do
-    tok KW_Catch
+    tok (KeywordTok KW_Catch)
     fp <- parens formalParam
     b  <- block
     pure $ Catch fp b
@@ -844,10 +837,10 @@ typeArg = fix \_ -> do
 ---------------- Types ---------------------
     
 extends :: P (List RefType)
-extends = tok KW_Extends *> refTypeList
+extends = tok (KeywordTok KW_Extends) *> refTypeList
 
 implements :: P (List RefType)
-implements = tok KW_Implements *> refTypeList
+implements = tok (KeywordTok KW_Implements) *> refTypeList
 
 refTypeArgs :: P (List RefType)
 refTypeArgs = angles refTypeList
@@ -884,92 +877,92 @@ type_ :: P Type
 type_ = PC.try (RefType <$> refType) <|> PrimType <$> primType
 
 resultType :: P (Maybe Type)
-resultType = tok KW_Void *> pure Nothing <|> Just <$> type_ <?> "resultType"
+resultType = tok (KeywordTok KW_Void) *> pure Nothing <|> Just <$> type_ <?> "resultType"
 
 primType :: P PrimType
 primType = 
-    tok KW_Boolean  *> pure BooleanT  <|>
-    tok KW_Object   *> pure ObjectT   <|>
-    tok KW_Decimal  *> pure DecimalT  <|>
+    tok (KeywordTok KW_Boolean)  *> pure BooleanT  <|>
+    tok (KeywordTok KW_Object)   *> pure ObjectT   <|>
+    tok (KeywordTok KW_Decimal)  *> pure DecimalT  <|>
     tok' "id"       *> pure IdT       <|>
-    tok KW_String   *> pure StringT       <|>
-    tok KW_Integer  *> pure IntegerT  <|>
-    tok KW_Long     *> pure LongT     <|>
-    tok KW_Blob     *> pure BlobT     <|>
-    tok KW_Date     *> pure DateT     <|>
-    tok KW_Datetime *> pure DatetimeT <|>
-    tok KW_Time     *> pure TimeT     <|>
-    tok KW_Double   *> pure DoubleT
+    tok (KeywordTok KW_String)   *> pure StringT       <|>
+    tok (KeywordTok KW_Integer)  *> pure IntegerT  <|>
+    tok (KeywordTok KW_Long)     *> pure LongT     <|>
+    tok (KeywordTok KW_Blob)     *> pure BlobT     <|>
+    tok (KeywordTok KW_Date)     *> pure DateT     <|>
+    tok (KeywordTok KW_Datetime) *> pure DatetimeT <|>
+    tok (KeywordTok KW_Time)     *> pure TimeT     <|>
+    tok (KeywordTok KW_Double)   *> pure DoubleT
 
 ----------------- Operators ----------------
 
 preIncDecOp :: P (Exp -> Exp)
 preIncDecOp =
-    tok Op_PPlus  *> pure PreIncrement <|>
-    tok Op_MMinus *> pure PreDecrement
+    tok (OperatorTok Op_PPlus)  *> pure PreIncrement <|>
+    tok (OperatorTok Op_MMinus) *> pure PreDecrement
 
 prefixOp :: P (Exp -> Exp)
 prefixOp =
-    tok Op_Bang  *> pure PreNot       <|>
-    tok Op_Tilde *> pure PreBitCompl  <|>
-    tok Op_Plus  *> pure PrePlus      <|>
-    tok Op_Minus *> pure PreMinus    
+    tok (OperatorTok Op_Bang)  *> pure PreNot       <|>
+    tok (OperatorTok Op_Tilde) *> pure PreBitCompl  <|>
+    tok (OperatorTok Op_Plus)  *> pure PrePlus      <|>
+    tok (OperatorTok Op_Minus) *> pure PreMinus    
 
 postfixOp :: P (Exp -> Exp)
 postfixOp =
-    tok Op_PPlus  *> pure PostIncrement <|>
-    tok Op_MMinus *> pure PostDecrement
+    tok (OperatorTok Op_PPlus)  *> pure PostIncrement <|>
+    tok (OperatorTok Op_MMinus) *> pure PostDecrement
 
 assignOp :: P AssignOp
 assignOp =
-    tok Op_Equal    *> pure EqualA   <|>
-    tok Op_StarE    *> pure MultA    <|>
-    tok Op_SlashE   *> pure DivA     <|>
-    tok Op_PercentE *> pure RemA     <|>
-    tok Op_PlusE    *> pure AddA     <|>
-    tok Op_MinusE   *> pure SubA     <|>
-    tok Op_LShiftE  *> pure LShiftA  <|>
-    tok Op_RShiftE  *> pure RShiftA  <|>
-    tok Op_RRShiftE *> pure RRShiftA <|>
-    tok Op_AndE     *> pure AndA     <|>
-    tok Op_CaretE   *> pure XorA     <|>
-    tok Op_OrE      *> pure OrA     
+    tok (OperatorTok Op_Equal)    *> pure EqualA   <|>
+    tok (OperatorTok Op_StarE)    *> pure MultA    <|>
+    tok (OperatorTok Op_SlashE)   *> pure DivA     <|>
+    tok (OperatorTok Op_PercentE) *> pure RemA     <|>
+    tok (OperatorTok Op_PlusE)    *> pure AddA     <|>
+    tok (OperatorTok Op_MinusE)   *> pure SubA     <|>
+    tok (OperatorTok Op_LShiftE)  *> pure LShiftA  <|>
+    tok (OperatorTok Op_RShiftE)  *> pure RShiftA  <|>
+    tok (OperatorTok Op_RRShiftE) *> pure RRShiftA <|>
+    tok (OperatorTok Op_AndE)     *> pure AndA     <|>
+    tok (OperatorTok Op_CaretE)   *> pure XorA     <|>
+    tok (OperatorTok Op_OrE)      *> pure OrA     
 
 infixCombineOp :: P Op
 infixCombineOp = 
-    tok Op_And   *> pure And  <|>
-    tok Op_Caret *> pure Xor  <|>
-    tok Op_Or    *> pure Or   <|>
-    tok Op_AAnd  *> pure CAnd <|>
-    tok Op_OOr   *> pure COr 
+    tok (OperatorTok Op_And)   *> pure And  <|>
+    tok (OperatorTok Op_Caret) *> pure Xor  <|>
+    tok (OperatorTok Op_Or)    *> pure Or   <|>
+    tok (OperatorTok Op_AAnd)  *> pure CAnd <|>
+    tok (OperatorTok Op_OOr)   *> pure COr 
 
 
 infixOp :: P Op
 infixOp =
-    tok Op_Star    *> pure Mult   <|>
-    tok Op_Slash   *> pure Div    <|>
-    tok Op_Percent *> pure Rem    <|>
-    tok Op_Plus    *> pure Add    <|>
-    tok Op_Minus   *> pure Sub    <|>
-    tok Op_LShift  *> pure LShift <|>
-    tok Op_LThan   *> pure LThan  <|>
+    tok (OperatorTok Op_Star)    *> pure Mult   <|>
+    tok (OperatorTok Op_Slash)   *> pure Div    <|>
+    tok (OperatorTok Op_Percent) *> pure Rem    <|>
+    tok (OperatorTok Op_Plus)    *> pure Add    <|>
+    tok (OperatorTok Op_Minus)   *> pure Sub    <|>
+    tok (OperatorTok Op_LShift)  *> pure LShift <|>
+    tok (OperatorTok Op_LThan)   *> pure LThan  <|>
 
     (PC.try $ do
-       tok Op_GThan   
-       tok Op_GThan   
-       tok Op_GThan
+       tok (OperatorTok Op_GThan)   
+       tok (OperatorTok Op_GThan)   
+       tok (OperatorTok Op_GThan)
        pure RRShift   ) <|>
            
     (PC.try $ do
-       tok Op_GThan 
-       tok Op_GThan
+       tok (OperatorTok Op_GThan) 
+       tok (OperatorTok Op_GThan)
        pure RShift    ) <|>
            
-    tok Op_GThan  *> pure GThan  <|>                                          
-    tok Op_LThanE *> pure LThanE <|>
-    tok Op_GThanE *> pure GThanE <|>
-    tok Op_Equals *> pure Equal  <|>
-    tok Op_BangE  *> pure NotEq 
+    tok (OperatorTok Op_GThan)  *> pure GThan  <|>                                          
+    tok (OperatorTok Op_LThanE) *> pure LThanE <|>
+    tok (OperatorTok Op_GThanE) *> pure GThanE <|>
+    tok (OperatorTok Op_Equals) *> pure Equal  <|>
+    tok (OperatorTok Op_BangE)  *> pure NotEq 
 
 ----------------- Utils --------------------
 
@@ -983,15 +976,15 @@ endOptSemi p = p >>= \a -> PC.optional semiColon *> pure a
 arrBrackets :: P Unit
 arrBrackets = brackets $ pure unit
 
-parens   = PC.between (tok OpenParen)  (tok CloseParen)
-braces   = PC.between (tok OpenCurly)  (tok CloseCurly)
-brackets = PC.between (tok OpenSquare) (tok CloseSquare)
-angles   = PC.between (tok Op_LThan)   (tok Op_GThan)
+parens   = PC.between (tok (SymbolTok OpenParen))  (tok (SymbolTok CloseParen))
+braces   = PC.between (tok (SymbolTok OpenCurly))  (tok (SymbolTok CloseCurly))
+brackets = PC.between (tok (SymbolTok OpenSquare)) (tok (SymbolTok CloseSquare))
+angles   = PC.between (tok (OperatorTok Op_LThan))   (tok (OperatorTok Op_GThan))
 
-comma = tok Comma
-colon     = tok Op_Colon
-semiColon = tok SemiColon
-period    = tok Period
+comma = tok (SymbolTok Comma)
+colon     = tok (OperatorTok Op_Colon)
+semiColon = tok (SymbolTok SemiColon)
+period    = tok (SymbolTok Period)
 
 --token :: forall t s a. (Position -> t -> List t -> Position) -> (t -> String) -> (t -> Maybe a) -> P a
 token nextpos showt test = do
